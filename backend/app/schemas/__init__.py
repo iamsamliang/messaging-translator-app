@@ -1,8 +1,10 @@
 from .conversation import (
-    ConversationRequest,
     ConversationCreate,
-    ConversationUpdate,
-    ConversationOut,
+    ConversationCreateDB,
+    ConversationNameUpdate,
+    ConversationMemberUpdate,
+    ConversationResponse,
+    Method,
 )
 from .message import MessageCreate, MessageUpdate, MessageOut
 from .user import UserCreate, UserUpdate, UserOut

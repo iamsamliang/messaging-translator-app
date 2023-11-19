@@ -11,9 +11,9 @@ from sqlalchemy.exc import IntegrityError
 from app import crud, schemas, models
 from app.core import security
 from app.core.config import settings
-from dependencies import get_db, get_current_user
-from exceptions import *
-from handlers import *
+from .dependencies import get_db, get_current_user
+from .exceptions import *
+from .handlers import *
 
 app = FastAPI()
 app.add_exception_handler(
@@ -73,7 +73,7 @@ async def login_for_token(
 # Conversation
 @app.post("/conversations", response_model=schemas.ConversationOut)
 async def create_convo(
-    db: Annotated[AsyncSession, Depends(get_db)], request: schemas.ConversationRequest
+    db: Annotated[AsyncSession, Depends(get_db)], request: schemas.ConversationCreate
 ) -> models.Conversation:
     users: set[models.User] = set()
     names = []
@@ -93,7 +93,10 @@ async def create_convo(
 
     try:
         new_convo = await crud.conversation.create(
-            db=db, convo=schemas.ConversationCreate(conversation_name=name), users=users
+            db=db,
+            convo=schemas.ConversationCreateDB(
+                conversation_name=name, members=list(users)
+            ),
         )
         await db.commit()  # For ACID compliancy w/ transactions (multiple CRUD ops per endpoint)
         await db.refresh()  # Refresh so new_convo contains its ID as well
@@ -103,9 +106,35 @@ async def create_convo(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@app.post("/conversations/add", response_model=schemas.ConversationOut)
-async def convo_add_users(
-    db: Annotated[AsyncSession, Depends(get_db)], request: schemas.ConversationRequest
+@app.patch(
+    "/conversations/{convo_id}/update-name",
+    response_model=schemas.ConversationResponse,
+)
+async def update_convo_name(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    convo_id: int,
+    request: schemas.ConversationNameUpdate,
+):
+    convo = await crud.conversation.get(db=db, id=convo_id)
+    if convo is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Conversation w/ id {convo_id} doesn't exist",
+        )
+    res = await crud.conversation.update(db=db, db_obj=convo, obj_in=request)
+    await db.commit()
+    await db.refresh()
+    return res
+
+
+@app.patch(
+    "/conversations/{convo_id}/update-members",
+    response_model=schemas.ConversationResponse,
+)
+async def update_convo_users(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    convo_id: int,
+    request: schemas.ConversationMemberUpdate,
 ) -> models.Conversation:
     users: set[models.User] = set()
     for user_id in request.user_ids:
@@ -117,33 +146,14 @@ async def convo_add_users(
             )
         users.add(user)
     try:
-        res = crud.conversation.add_users(db=db, convo_id=request.id, users=users)
-        await db.commit()
-        await db.refresh()
-        return res
-    except IntegrityError as e:
-        await db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-
-@app.post("/conversations/delete", response_model=schemas.ConversationOut)
-async def convo_remove_users(
-    db: Annotated[AsyncSession, Depends(get_db)], request: schemas.ConversationRequest
-):
-    users: set[models.User] = set()
-    for user_id in request.user_ids:
-        user: models.User = await crud.user.get_by_email(db=db, email=user_id["email"])
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_BAD_REQUEST,
-                detail=f"User w/ email {user_id['email']} doesn't exist",
-            )
-        users.add(user)
-
-    try:
-        res = await crud.conversation.delete_users(
-            db=db, convo_id=request.id, users=users
+        res = await crud.conversation.update_users(
+            db=db, convo_id=convo_id, users=users, method=request.method
         )
+        if not res:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Conversation w/ id {convo_id} doesn't exist",
+            )
         await db.commit()
         await db.refresh()
         return res

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import crud, models, schemas
 from app.core import security
 from app.core.config import settings
-from database import AsyncSessionLocal
+from .database import AsyncSessionLocal
 
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"login/access-token")
 

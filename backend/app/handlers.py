@@ -3,7 +3,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from exceptions import *
+from .exceptions import *
 
 
 async def user_already_exists_exception_handler(
