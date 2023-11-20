@@ -1,8 +1,10 @@
 from pydantic import BaseModel, ConfigDict, StringConstraints
-from typing import Annotated
+from typing import Annotated, TYPE_CHECKING
 from datetime import datetime
 
-from app.schemas import ConversationResponse, TranslationResponse
+if TYPE_CHECKING:
+    from .conversation import ConversationResponse
+    from .translation import TranslationResponse
 
 # no schema for read because can only get a message by it's ID (only unique identifier)
 
@@ -48,5 +50,5 @@ class MessageResponse(BaseModel):
     # orig_language: Annotated[
     #     str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
     # ]
-    conversation: ConversationResponse
-    translations: list[TranslationResponse]
+    conversation: "ConversationResponse"
+    translations: list["TranslationResponse"]

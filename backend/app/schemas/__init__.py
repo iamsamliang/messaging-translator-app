@@ -1,3 +1,5 @@
+from .user import UserCreate, UserUpdate, UserOut
+from .message import MessageCreate, MessageUpdate, MessageResponse
 from .conversation import (
     ConversationCreate,
     ConversationCreateDB,
@@ -6,8 +8,6 @@ from .conversation import (
     ConversationResponse,
     Method,
 )
-from .message import MessageCreate, MessageUpdate, MessageResponse
-from .user import UserCreate, UserUpdate, UserOut
 from .translation import TranslationCreate, TranslationUpdate, TranslationResponse
 
 from .token import TokenPayLoad, TokenOut

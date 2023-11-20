@@ -1,8 +1,10 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, StringConstraints
-from typing import Annotated
+from typing import Annotated, TYPE_CHECKING
 from datetime import datetime
 
-from app.schemas import MessageResponse, ConversationResponse
+if TYPE_CHECKING:
+    from .message import MessageResponse
+    from .conversation import ConversationResponse
 
 
 # shared for create and read (schema not needed for read though)
@@ -61,11 +63,11 @@ class UserOut(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
     id: int
-    created_at: datetime | None = None
+    created_at: datetime | None
 
-    messages_sent: list[MessageResponse] = []
-    # messages_received: list[MessageOut] = []
-    conversations: list[ConversationResponse] = []
+    messages_sent: list["MessageResponse"] = []
+    # messages_received: list["MessageOut"] = []
+    conversations: list["ConversationResponse"] = []
 
 
 class UserRequestModel(BaseModel):

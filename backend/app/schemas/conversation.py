@@ -1,10 +1,10 @@
 from pydantic import BaseModel, ConfigDict, StringConstraints
-from typing import Annotated
+from typing import Annotated, TYPE_CHECKING
 from enum import Enum
 
-from app.models import User
-from app.schemas import MessageResponse, UserOut
-from .user import UserRequestModel
+if TYPE_CHECKING:
+    from .user import UserRequestModel, UserOut
+    from .message import MessageResponse
 
 
 class Method(str, Enum):
@@ -14,14 +14,16 @@ class Method(str, Enum):
 
 class ConversationCreate(BaseModel):
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
-    user_ids: list[UserRequestModel]
+    user_ids: list["UserRequestModel"]
 
 
 class ConversationCreateDB(BaseModel):
     """Input Schema for function Conversation.Create"""
 
+    model_config = ConfigDict(from_attributes=True)
+
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
-    members: list[User]
+    members: list["UserOut"]
 
 
 class ConversationNameUpdate(BaseModel):
@@ -30,7 +32,7 @@ class ConversationNameUpdate(BaseModel):
 
 class ConversationMemberUpdate(BaseModel):
     method: Method
-    user_ids: list[UserRequestModel]
+    user_ids: list["UserRequestModel"]
 
 
 class ConversationResponse(BaseModel):
@@ -39,6 +41,8 @@ class ConversationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+    # need forward references for type hints to avoid NameErrors and help circular importd
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
-    messages: list[MessageResponse] = []
-    members: list[UserOut] = []
+    messages: list["MessageResponse"] = []
+    members: list["UserOut"] = []
