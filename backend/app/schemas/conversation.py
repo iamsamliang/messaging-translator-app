@@ -3,7 +3,7 @@ from typing import Annotated
 from enum import Enum
 
 from app.models import User
-from .message import MessageOut
+from .message import MessageResponse
 from .user import UserOut, UserRequestModel
 
 
@@ -40,5 +40,5 @@ class ConversationResponse(BaseModel):
 
     id: int
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
-    messages: list[MessageOut] = []
+    messages: list[MessageResponse] = []
     members: list[UserOut] = []

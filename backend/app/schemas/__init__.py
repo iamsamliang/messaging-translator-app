@@ -6,8 +6,9 @@ from .conversation import (
     ConversationResponse,
     Method,
 )
-from .message import MessageCreate, MessageUpdate, MessageOut
+from .message import MessageCreate, MessageUpdate, MessageResponse
 from .user import UserCreate, UserUpdate, UserOut
+from .translation import TranslationCreate, TranslationUpdate, TranslationResponse
 
 from .token import TokenPayLoad, TokenOut
 

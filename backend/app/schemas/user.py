@@ -10,18 +10,18 @@ from .conversation import ConversationOut
 class UserBase(BaseModel):
     first_name: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None = None
+    ] | None
     last_name: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None = None
+    ] | None
     profile_photo: Annotated[
         str, StringConstraints(strip_whitespace=True, max_length=255)
-    ] | None = None
-    email: EmailStr | None = None
+    ] | None
+    email: EmailStr | None
     target_language: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] = None
-    is_admin: bool | None = None
+    ] | None
+    is_admin: bool | None
 
 
 class UserCreate(UserBase):
@@ -47,7 +47,7 @@ class UserCreate(UserBase):
 class UserUpdate(UserBase):
     """Input Schema for function User.Update"""
 
-    password: str | None = None
+    password: str | None
 
 
 class UserInDB(UserBase):

@@ -3,12 +3,13 @@ from typing import Annotated
 from datetime import timedelta
 
 from fastapi import FastAPI, Depends, status
+from sqlalchemy import select
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
-from app import crud, schemas, models
+from app import crud, schemas, models, translation
 from app.core import security
 from app.core.config import settings
 from .dependencies import get_db, get_current_user
@@ -46,6 +47,47 @@ async def create_user(
         raise HTTPException(status_code=400, detail="Email already registered")
 
 
+@app.patch("/users/{user_id}", response_model=schemas.UserOut)
+async def update_user(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user_id: int,
+    request: schemas.UserUpdate,
+) -> models.User:
+    try:
+        curr_user = await crud.user.get(db=db, id=user_id)
+        if curr_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User w/ id {user_id} doesn't exist",
+            )
+        res = await crud.user.update(db=db, db_obj=curr_user, obj_in=request)
+
+        await db.commit()
+        await db.refresh()
+        return res
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@app.delete("/users/{user_id}", response_model=schemas.UserOut)
+async def delete_user(db: Annotated[AsyncSession, Depends(get_db)], user_id: int):
+    try:
+        res = await crud.user.delete(db=db, id=user_id)
+        if res is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User w/ id {user_id} doesn't exist",
+            )
+        await db.commit()
+        return res
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 # Login
 @app.post("/login/access-token", response_model=schemas.TokenOut)
 async def login_for_token(
@@ -71,7 +113,24 @@ async def login_for_token(
 
 
 # Conversation
-@app.post("/conversations", response_model=schemas.ConversationOut)
+## User needs to be able to find people to send messages to and receive friend requests
+
+## User needs to be able to start a conversation with someone or receive a join invitation from someone
+
+
+## User needs to be able to leave a groupchat - done
+@app.get(
+    "/conversations/{conversation_id}", response_model=schemas.ConversationResponse
+)
+async def get_convo(
+    db: Annotated[AsyncSession, Depends(get_db)], conversation_id: int
+) -> models.Conversation:
+    convo = await crud.conversation.get(db=db, id=conversation_id)
+    return convo
+
+
+## How do we identify a conversation that already exists?
+@app.post("/conversations", response_model=schemas.ConversationResponse)
 async def create_convo(
     db: Annotated[AsyncSession, Depends(get_db)], request: schemas.ConversationCreate
 ) -> models.Conversation:
@@ -121,10 +180,14 @@ async def update_convo_name(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Conversation w/ id {convo_id} doesn't exist",
         )
-    res = await crud.conversation.update(db=db, db_obj=convo, obj_in=request)
-    await db.commit()
-    await db.refresh()
-    return res
+    try:
+        res = await crud.conversation.update(db=db, db_obj=convo, obj_in=request)
+        await db.commit()
+        await db.refresh()
+        return res
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @app.patch(
@@ -162,18 +225,98 @@ async def update_convo_users(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-## User needs to be able to create messages, read messages, (no update or delete, at least no delete internally)
+@app.delete("/conversation/{convo_id}", response_model=schemas.ConversationResponse)
+async def delete_convo(db: Annotated[AsyncSession, Depends(get_db)], convo_id: int):
+    try:
+        res = await crud.conversation.delete(db=db, id=convo_id)
+        if res is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Conversation w/ id {convo_id} doesn't exist",
+            )
+        await db.commit()
+        return res
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-## User needs to be able to find people to send messages to and receive friend requests
+# Messages
+## User needs to be able to create messages, get their messages (no update or delete, at least no delete internally)
+@app.get("/messages/{conversation_id}/{user_id}")
+async def get_messages(
+    db: Annotated[AsyncSession, Depends(get_db)], conversation_id: int, user_id: int
+):
+    chat_history = []
+    convo = await crud.conversation.get(db=db, id=conversation_id)
 
-## User needs to be able to start a conversation with someone or receive a join invitation from someone
-## How do we identify a conversation that already exists?
+    for message in convo.messages:
+        if message.sender_id == user_id:
+            chat_history.append(message.original_text)
+        else:
+            translation = await db.execute(
+                select(models.Translation.translation).filter_by(
+                    message_id=message.id, target_user_id=user_id
+                )
+            )
+            chat_history.append(translation)
 
-## User needs to be able to leave a groupchat - done
+    return {"history": chat_history}
 
-## App needs to translate incoming/outgoing messages to the target user's desired language
-## For translation, we want to feed context back to the model. But given a user, we want to feed the
-## context in his language.
-## So: userA -> inputA in lang A -> prefix w/ chat history in lang A -> In english, ask to translate inputA (stil in lang A) to lang B
-## However, has been noted (7 months ago) that the instructions also in lang A would product better results
+
+@app.post("/messages", response_model=schemas.MessageResponse)
+async def create_message(
+    db: Annotated[AsyncSession, Depends(get_db)], request: schemas.MessageCreate
+):
+    try:
+        # 1) use conversation_id to get all users in the conversation, exclude sender
+        # 2) for each user, grab their desired language
+        # 3) translate original_text to each desired language
+        # 4) Create a corresponding row in the translations table
+
+        message = await crud.message.create(db=db, obj_in=request)
+        convo = await crud.conversation.get(db=db, id=request.conversation_id)
+
+        chat_history = []
+        for message in convo.messages:
+            if message.orig_language == request.orig_language:
+                chat_history.append((request.sender_id, message.original_text))
+            else:
+                # if the message isn't in the language of the sender, then see if there's a translation for it
+                for tls in message.translations:
+                    if tls.language == request.orig_language:
+                        chat_history.append((message.sender_id, tls.translation))
+
+        convo.messages.append(message)
+        await db.flush()
+
+        for member in convo.members:
+            if member.id != request.sender_id:
+                text = await translation.gpt.translate(
+                    request.sender_id,
+                    member.target_language,
+                    request.original_text,
+                    chat_history,
+                )
+                # create the translation row
+
+                new_translation = await crud.translation.create(
+                    db=db,
+                    obj_in=schemas.TranslationCreate(
+                        translation=text,
+                        language=member.target_language,
+                        target_user_id=member.id,
+                        message_id=message.id,
+                        user=member,
+                    ),
+                )
+                message.translations.append(new_translation)
+
+        await db.commit()
+        return message
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# need a method to update received_at attribute of a Message

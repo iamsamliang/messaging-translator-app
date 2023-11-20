@@ -24,7 +24,7 @@ group_member_association = Table(
     Column(
         "conversation_id",
         Integer,
-        ForeignKey("conversation.id"),
+        ForeignKey("conversations.id"),
         primary_key=True,
     ),
     Column("joined_datetime", DateTime, default=datetime.utcnow),
@@ -59,12 +59,9 @@ class User(Base):
     # w/o back_populates unidirectional relationship. From user, can access messages obj
     # But from a message, can't directly get the user obj
     messages_sent: Mapped[List["Message"]] = relationship()
-    # messages_sent: Mapped[List["Message"]] = relationship(
-    #     back_populates="sender", foreign_keys="Message.sender_id"
-    # )
-    # messages_received: Mapped[List["Message"]] = relationship(
-    #     back_populates="receiver", foreign_keys="Message.receiver_id"
-    # )
+    messages_received: Mapped[List["Translation"]] = relationship(
+        back_populates="user",
+    )
     conversations: Mapped[List["Conversation"]] = relationship(
         secondary=group_member_association, back_populates="members"
     )
@@ -84,21 +81,30 @@ class Message(Base):
 
     __tablename__ = "messages"
     id: Mapped[int] = mapped_column(primary_key=True)
-    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversation.id"))
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"))
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     # receiver_id: Mapped[int] = mapped_column(ForeignKey("users.id")) # is this needed? We can retrieve all recipients from the conversations table
     original_text: Mapped[str] = mapped_column(Text)
-    translated_text: Mapped[str] = mapped_column(Text)
     orig_language: Mapped[str] = mapped_column(String(100))
     sent_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )  # index this for faster queries
     received_at: Mapped[datetime] = mapped_column(DateTime)
 
-    # Relationship to Conversation
-    conversations: Mapped[List["Conversation"]] = relationship(
-        back_populates="messages"
-    )
+    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+    translations: Mapped[List["Translation"]] = relationship(back_populates="message")
+
+
+class Translation(Base):
+    __tablename__ = "translations"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    translation: Mapped[str] = mapped_column(Text)
+    language: Mapped[str] = mapped_column(String(100))
+    target_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    message_id: Mapped[int] = mapped_column(ForeignKey("messages.id"))
+
+    message: Mapped[Message] = relationship(back_populates="translations")
+    user: Mapped[User] = relationship(back_populates="messages_received")
 
 
 class Conversation(Base):
@@ -107,12 +113,12 @@ class Conversation(Base):
     2. conversation_name
     """
 
-    __tablename__ = "conversation"
+    __tablename__ = "conversations"
     id: Mapped[int] = mapped_column(primary_key=True)
     conversation_name: Mapped[str] = mapped_column(String(255))
 
     # Relationships
-    messages: Mapped[List[Message]] = relationship(back_populates="conversations")
+    messages: Mapped[List[Message]] = relationship(back_populates="conversation")
     members: Mapped[List[User]] = relationship(
         secondary=group_member_association, back_populates="conversations"
     )
