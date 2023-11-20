@@ -48,7 +48,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
-    profile_photo: Optional[Mapped[str]] = mapped_column(String(255))
+    profile_photo: Mapped[Optional[str]] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(Text, unique=True)  # serves as username
     password_hash: Mapped[str] = mapped_column(Text)
     target_language: Mapped[str] = mapped_column(String(100))

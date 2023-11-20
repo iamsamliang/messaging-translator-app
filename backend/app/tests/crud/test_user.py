@@ -39,4 +39,4 @@ async def test_create_valid_user(db: AsyncSession, faker: Faker) -> None:
     assert user.last_name == last_name
     assert user.target_language == target_language
     assert user.email == email
-    assert hasattr(user, "hashed_password")
+    assert hasattr(user, "password_hash")

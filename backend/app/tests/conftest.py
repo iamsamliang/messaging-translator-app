@@ -1,8 +1,9 @@
 import pytest
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..database import AsyncSessionLocal
-from ..dependencies import get_db
+
+from app.database import AsyncSessionLocal
+from app.dependencies import get_db
 
 
 @pytest.fixture(scope="session", autouse=True)
