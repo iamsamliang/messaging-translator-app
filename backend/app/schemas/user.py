@@ -2,8 +2,7 @@ from pydantic import BaseModel, EmailStr, ConfigDict, StringConstraints
 from typing import Annotated
 from datetime import datetime
 
-from .message import MessageOut
-from .conversation import ConversationOut
+from app.schemas import MessageResponse, ConversationResponse
 
 
 # shared for create and read (schema not needed for read though)
@@ -64,9 +63,9 @@ class UserOut(UserBase):
     id: int
     created_at: datetime | None = None
 
-    messages_sent: list[MessageOut] = []
+    messages_sent: list[MessageResponse] = []
     # messages_received: list[MessageOut] = []
-    conversations: list[ConversationOut] = []
+    conversations: list[ConversationResponse] = []
 
 
 class UserRequestModel(BaseModel):

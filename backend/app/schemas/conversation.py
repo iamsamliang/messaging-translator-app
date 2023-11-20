@@ -3,8 +3,8 @@ from typing import Annotated
 from enum import Enum
 
 from app.models import User
-from .message import MessageResponse
-from .user import UserOut, UserRequestModel
+from app.schemas import MessageResponse, UserOut
+from .user import UserRequestModel
 
 
 class Method(str, Enum):

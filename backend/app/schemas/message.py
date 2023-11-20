@@ -2,8 +2,7 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 from typing import Annotated
 from datetime import datetime
 
-from .conversation import ConversationResponse
-from .translation import TranslationResponse
+from app.schemas import ConversationResponse, TranslationResponse
 
 # no schema for read because can only get a message by it's ID (only unique identifier)
 
