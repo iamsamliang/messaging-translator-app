@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -22,9 +22,9 @@ reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"login/access-token")
 #         await db.close()
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as db:
-        yield db
+        yield db  # produces an AsyncGenerator
 
 
 async def get_current_user(

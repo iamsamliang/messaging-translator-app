@@ -38,7 +38,7 @@ async def create_user(
     try:
         user = await crud.user.create(db=db, obj_in=user_in)
         await db.commit()
-        await db.refresh()
+        await db.refresh(user)
         return user
     except IntegrityError as e:
         await db.rollback()
@@ -63,7 +63,7 @@ async def update_user(
         res = await crud.user.update(db=db, db_obj=curr_user, obj_in=request)
 
         await db.commit()
-        await db.refresh()
+        await db.refresh(res)
         return res
     except IntegrityError as e:
         await db.rollback()
@@ -158,7 +158,7 @@ async def create_convo(
             ),
         )
         await db.commit()  # For ACID compliancy w/ transactions (multiple CRUD ops per endpoint)
-        await db.refresh()  # Refresh so new_convo contains its ID as well
+        await db.refresh(new_convo)  # Refresh so new_convo contains its ID as well
         return new_convo
     except IntegrityError as e:
         await db.rollback()
@@ -183,7 +183,7 @@ async def update_convo_name(
     try:
         res = await crud.conversation.update(db=db, db_obj=convo, obj_in=request)
         await db.commit()
-        await db.refresh()
+        await db.refresh(res)
         return res
     except IntegrityError as e:
         await db.rollback()
@@ -218,7 +218,7 @@ async def update_convo_users(
                 detail=f"Conversation w/ id {convo_id} doesn't exist",
             )
         await db.commit()
-        await db.refresh()
+        await db.refresh(res)
         return res
     except IntegrityError as e:
         await db.rollback()
