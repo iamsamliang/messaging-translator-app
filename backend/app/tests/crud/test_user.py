@@ -12,8 +12,6 @@ from app.core.security import verify_password
 from app.tests.utils.user import create_random_user
 from app.tests.utils.utils import random_string
 
-# authentication
-
 
 @pytest.mark.parametrize(
     "expected_exception",
@@ -223,7 +221,8 @@ async def test_update_user(db: AsyncSession, faker: Faker):
 async def test_delete_user(db: AsyncSession, faker: Faker):
     user = await create_random_user(
         db=db,
-        faker=faker,
+        email=faker.email(),
+        password=faker.password(),
         fname_len=3,
         lname_len=3,
         photo_len=10,
