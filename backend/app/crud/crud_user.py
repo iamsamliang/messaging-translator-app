@@ -27,8 +27,6 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             **obj_in.model_dump(exclude={"password"}), password_hash=hashed_pw
         )
         db.add(db_obj)
-        # # await db.commit()
-        # await db.refresh(db_obj)
         return db_obj
 
     async def update(

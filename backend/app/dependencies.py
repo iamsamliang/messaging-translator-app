@@ -11,6 +11,7 @@ from app.core import security
 from app.core.config import settings
 from .database import AsyncSessionLocal
 
+# tokenURL is used for documentation. Tells client where to get an access token
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"login/access-token")
 
 
@@ -27,7 +28,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db  # produces an AsyncGenerator
 
 
-async def get_current_user(
+async def verify_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     token: Annotated[str, Depends(reusable_oauth2)],
 ) -> models.User:
@@ -54,8 +55,8 @@ async def get_current_user(
     return user
 
 
-async def get_current_admin(
-    current_user: Annotated[models.User, Depends(get_current_user)],
+async def verify_current_admin(
+    current_user: Annotated[models.User, Depends(verify_current_user)],
 ) -> models.User:
     if not current_user.is_admin:
         raise HTTPException(status_code=400, detail="The user is not an admin")

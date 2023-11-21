@@ -13,9 +13,3 @@ async def user_already_exists_exception_handler(
         status_code=400,
         content={"detail": exc.message},
     )
-
-
-async def user_does_not_exists_handler(
-    request: Request, exc: UserDoesNotExistException
-):
-    return JSONResponse(status_code=400, content={"detail", exc.message})

@@ -11,25 +11,6 @@ if TYPE_CHECKING:
 class UserBase(BaseModel):
     first_name: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None
-    last_name: Annotated[
-        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None
-    profile_photo: Annotated[
-        str, StringConstraints(strip_whitespace=True, max_length=255)
-    ] | None
-    email: EmailStr | None
-    target_language: Annotated[
-        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None
-    is_admin: bool | None
-
-
-class UserCreate(UserBase):
-    """Input Schema for function User.Create"""
-
-    first_name: Annotated[
-        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
     ]
     last_name: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
@@ -38,17 +19,36 @@ class UserCreate(UserBase):
         str, StringConstraints(strip_whitespace=True, max_length=255)
     ]
     email: EmailStr
-    password: str
     target_language: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
     ]
     is_admin: bool = False
 
 
-class UserUpdate(UserBase):
+class UserCreate(UserBase):
+    """Input Schema for function User.Create"""
+
+    password: str
+
+
+class UserUpdate(BaseModel):
     """Input Schema for function User.Update"""
 
-    password: str | None
+    first_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
+    ] | None = None
+    last_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
+    ] | None = None
+    profile_photo: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=255)
+    ] | None = None
+    email: EmailStr | None = None
+    target_language: Annotated[
+        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
+    ] | None = None
+    is_admin: bool | None = None
+    password: str | None = None
 
 
 class UserInDB(UserBase):
@@ -63,7 +63,7 @@ class UserOut(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
     id: int
-    created_at: datetime | None
+    created_at: datetime
 
     messages_sent: list["MessageResponse"] = []
     # messages_received: list["MessageOut"] = []

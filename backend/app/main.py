@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from fastapi import FastAPI, Depends, status
 from sqlalchemy import select
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,21 +13,20 @@ from sqlalchemy.exc import IntegrityError
 from app import crud, schemas, models, translation
 from app.core import security
 from app.core.config import settings
-from .dependencies import get_db, get_current_user
-from .exceptions import *
-from .handlers import *
+from .dependencies import get_db, verify_current_user
+from .exceptions import UserAlreadyExistsException
+from .handlers import user_already_exists_exception_handler
 
 app = FastAPI()
 app.add_exception_handler(
     UserAlreadyExistsException, user_already_exists_exception_handler
 )
-app.add_exception_handler(UserDoesNotExistException, user_does_not_exists_handler)
 
 
 # Users
 @app.get("/users/me", response_model=schemas.UserOut)
 async def get_me(
-    current_user: Annotated[models.User, Depends(get_current_user)]
+    current_user: Annotated[models.User, Depends(verify_current_user)]
 ) -> models.User:
     return current_user
 
@@ -106,7 +106,7 @@ async def login_for_token(
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
-        data={"sub": form_data.username}, expires_delta=access_token_expires
+        data={"sub": f"email:{form_data.username}"}, expires_delta=access_token_expires
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
