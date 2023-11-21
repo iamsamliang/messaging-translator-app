@@ -11,7 +11,7 @@ db_url = settings.DATABASE_URL
 
 engine = create_async_engine(
     url=db_url,
-    echo=True,
+    echo=False,
     # pool_size=10, # optimization params
     # max_overflow=20,
     # pool_timeout=30,
