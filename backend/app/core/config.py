@@ -1,6 +1,9 @@
 import secrets
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv(find_dotenv(".env"))
 
 
 class Settings(BaseSettings):
@@ -10,7 +13,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     OPENAI_API_KEY: str
 
-    model_config = SettingsConfigDict(env_file="../../.env", case_sensitive=True)
+    model_config = SettingsConfigDict(case_sensitive=True)
 
 
 settings = Settings()
