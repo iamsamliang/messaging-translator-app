@@ -1,10 +1,6 @@
-import os
-import asyncio
-
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-from app.models.models import Base
 from app.core.config import settings
 
 db_url = settings.DATABASE_URL
@@ -20,13 +16,12 @@ engine = create_async_engine(
 )
 
 
-async def create_tables():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-
+# Using Alembic so don't call this
+# async def create_tables():
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
 # Must run the async function using asyncio.run
-asyncio.run(create_tables())
+# asyncio.run(create_tables())
 
 AsyncSessionLocal = async_sessionmaker(
     autocommit=False, autoflush=False, expire_on_commit=False, bind=engine
