@@ -11,7 +11,7 @@ from app.tests.utils.user import create_random_user_stochastic
 
 @pytest.mark.anyio
 async def test_create_convo(db: AsyncSession):
-    conversation_name = "conversation test"
+    conversation_name = "create conversation"
     created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
     await db.commit()
 
@@ -20,7 +20,7 @@ async def test_create_convo(db: AsyncSession):
 
 @pytest.mark.anyio
 async def test_get_convo(db: AsyncSession):
-    conversation_name = "conversation test"
+    conversation_name = "get conversation"
     created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
     await db.commit()
 
@@ -32,7 +32,7 @@ async def test_get_convo(db: AsyncSession):
 
 @pytest.mark.anyio
 async def test_delete_convo(db: AsyncSession):
-    conversation_name = "conversation test"
+    conversation_name = "delete conversation"
     created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
     await db.commit()
     id = created_convo.id
@@ -44,11 +44,11 @@ async def test_delete_convo(db: AsyncSession):
 
 @pytest.mark.anyio
 async def test_update_name(db: AsyncSession):
-    conversation_name = "conversation test"
+    conversation_name = "change conversation name"
     created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
     await db.commit()
     old_id = created_convo.id
-    new_name = "new conversation test"
+    new_name = "change conversation name new"
     await crud.conversation.update(
         db=db,
         db_obj=created_convo,

@@ -90,7 +90,7 @@ class Message(Base):
     sent_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )  # index this for faster queries
-    received_at: Mapped[datetime] = mapped_column(DateTime)
+    received_at: Mapped[datetime] = mapped_column(nullable=True)
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
     translations: Mapped[List["Translation"]] = relationship(back_populates="message")
