@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from typing import Annotated, TYPE_CHECKING
 from pydantic import BaseModel, StringConstraints
+from .responses import UserOut
 
-if TYPE_CHECKING:
-    from .user import UserOut
+# if TYPE_CHECKING:
+#     from .user import UserOut
 
 
 class TranslationCreate(BaseModel):
@@ -12,7 +15,7 @@ class TranslationCreate(BaseModel):
     ]
     target_user_id: int
     message_id: int
-    user: "UserOut"
+    user: UserOut
 
 
 class TranslationUpdate(BaseModel):
@@ -22,7 +25,3 @@ class TranslationUpdate(BaseModel):
     ] | None
     target_user_id: int | None
     message_id: int | None
-
-
-class TranslationResponse(BaseModel):
-    pass

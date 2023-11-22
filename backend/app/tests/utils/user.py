@@ -1,10 +1,28 @@
+import random
 from pydantic import EmailStr
+from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
 from app.models import User
 from app.schemas import UserCreate
 from .utils import random_string
+
+
+async def create_random_user_stochastic(db: AsyncSession, faker: Faker) -> User:
+    first_name = random_string(random.randint(5, 30))
+    last_name = random_string(random.randint(5, 30))
+    profile_photo = random_string(random.randint(5, 30))
+    user_schema = UserCreate(
+        first_name=first_name,
+        last_name=last_name,
+        profile_photo=profile_photo,
+        email=faker.email(),
+        target_language="english",
+        is_admin=False,
+        password=faker.password(),
+    )
+    return await crud.user.create(db=db, obj_in=user_schema)
 
 
 async def create_random_user(

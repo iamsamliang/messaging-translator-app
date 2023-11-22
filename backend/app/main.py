@@ -134,31 +134,24 @@ async def get_convo(
 async def create_convo(
     db: Annotated[AsyncSession, Depends(get_db)], request: schemas.ConversationCreate
 ) -> models.Conversation:
-    users: set[models.User] = set()
-    names = []
-    for user_id in request.user_ids:
-        user: models.User = await crud.user.get_by_email(db=db, email=user_id["email"])
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User w/ email {user_id['email']} doesn't exist",
-            )
-        names.append(user.first_name)
-        users.add(user)
-
-    name = request["conversation_name"]
-    if not name:
-        name = ", ".join(names)
-
     try:
         new_convo = await crud.conversation.create(
-            db=db,
-            convo=schemas.ConversationCreateDB(
-                conversation_name=name, members=list(users)
-            ),
+            db=db, convo_name=request["conversation_name"]
         )
         await db.commit()  # For ACID compliancy w/ transactions (multiple CRUD ops per endpoint)
-        await db.refresh(new_convo)  # Refresh so new_convo contains its ID as well
+        members = await new_convo.awaitable_attrs.members
+        user_emails: set[str] = set()
+        for user_id in request.user_ids:
+            email = user_id["email"]
+            if email not in user_emails:
+                user_emails.add(email)
+                user: models.User = await crud.user.get_by_email(db=db, email=email)
+                if not user:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"User w/ email {user_id['email']} doesn't exist",
+                    )
+                members.append(user)
         return new_convo
     except IntegrityError as e:
         await db.rollback()

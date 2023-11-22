@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from pydantic import BaseModel, EmailStr, ConfigDict, StringConstraints
 from typing import Annotated, TYPE_CHECKING
 from datetime import datetime
 
-if TYPE_CHECKING:
-    from .message import MessageResponse
-    from .conversation import ConversationResponse
+# if TYPE_CHECKING:
+#     from .message import MessageResponse
+#     from .conversation import ConversationResponse
 
 
 # shared for create and read (schema not needed for read though)
@@ -56,19 +58,3 @@ class UserInDB(UserBase):
 
     # user_id may not be created
     password_hash: str
-
-
-class UserOut(UserBase):
-    """Output Schema for any function returning User object"""
-
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    created_at: datetime
-
-    messages_sent: list["MessageResponse"] = []
-    # messages_received: list["MessageOut"] = []
-    conversations: list["ConversationResponse"] = []
-
-
-class UserRequestModel(BaseModel):
-    email: EmailStr
