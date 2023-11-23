@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Annotated, TYPE_CHECKING
 from pydantic import BaseModel, StringConstraints
-from app.models import User
 
 # if TYPE_CHECKING:
 #     from .user import UserOut
