@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class TokenPayLoad(BaseModel):
-    username: str | None = None
+    username: str
 
 
 class TokenOut(BaseModel):

@@ -53,8 +53,8 @@ class UserUpdate(BaseModel):
     password: str | None = None
 
 
-class UserInDB(UserBase):
-    """Input Schema for Database in function User.Create"""
+# class UserInDB(UserBase):
+#     """Input Schema for Database in function User.Create"""
 
-    # user_id may not be created
-    password_hash: str
+#     # user_id may not be created
+#     password_hash: str

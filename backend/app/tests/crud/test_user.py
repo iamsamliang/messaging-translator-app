@@ -75,7 +75,7 @@ async def test_create_user(expected_exception, db: AsyncSession, faker: Faker) -
 
 
 @pytest.mark.anyio
-async def test_create_admin(db: AsyncSession, faker: Faker):
+async def test_create_admin(db: AsyncSession, faker: Faker) -> None:
     first_name = random_string(8)
     last_name = random_string(15)
     profile_photo = random_string(20)
@@ -109,7 +109,7 @@ async def test_create_admin(db: AsyncSession, faker: Faker):
 
 
 @pytest.mark.anyio
-async def test_get_by_email(db: AsyncSession, faker: Faker):
+async def test_get_by_email(db: AsyncSession, faker: Faker) -> None:
     first_name = random_string(8)
     last_name = random_string(15)
     profile_photo = random_string(20)
@@ -137,7 +137,7 @@ async def test_get_by_email(db: AsyncSession, faker: Faker):
 
 
 @pytest.mark.anyio
-async def test_get_by_id(db: AsyncSession, faker: Faker):
+async def test_get_by_id(db: AsyncSession, faker: Faker) -> None:
     first_name = random_string(5)
     last_name = random_string(10)
     profile_photo = random_string(5)
@@ -165,7 +165,7 @@ async def test_get_by_id(db: AsyncSession, faker: Faker):
 
 
 @pytest.mark.anyio
-async def test_get_nonexisting_user(db: AsyncSession):
+async def test_get_nonexisting_user(db: AsyncSession) -> None:
     user1 = await crud.user.get(db=db, id=-1)
     user2 = await crud.user.get_by_email(db=db, email="thisdontexist@-1None.com")
 
@@ -174,7 +174,7 @@ async def test_get_nonexisting_user(db: AsyncSession):
 
 
 @pytest.mark.anyio
-async def test_update_user(db: AsyncSession, faker: Faker):
+async def test_update_user(db: AsyncSession, faker: Faker) -> None:
     first_name = random_string(5)
     last_name = random_string(5)
     profile_photo = random_string(5)
@@ -218,7 +218,7 @@ async def test_update_user(db: AsyncSession, faker: Faker):
 
 
 @pytest.mark.anyio
-async def test_delete_user(db: AsyncSession, faker: Faker):
+async def test_delete_user(db: AsyncSession, faker: Faker) -> None:
     user = await create_random_user(
         db=db,
         email=faker.email(),

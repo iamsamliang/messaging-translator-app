@@ -2,14 +2,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models import Conversation, User
-from app.schemas import ConversationCreate, ConversationNameUpdate, Method
+from app.schemas import ConversationCreateDB, ConversationNameUpdate, Method
 from .base import CRUDBase
 
 
 class CRUDConversation(
-    CRUDBase[Conversation, ConversationCreate, ConversationNameUpdate]
+    CRUDBase[Conversation, ConversationCreateDB, ConversationNameUpdate]
 ):
-    async def create(self, db: AsyncSession, *, convo_name: str) -> Conversation:
+    async def create(
+        self, db: AsyncSession, *, obj_in: ConversationCreateDB
+    ) -> Conversation:
         """When we create a conversation, we must have users that we want to add already
 
         Args:
@@ -22,9 +24,7 @@ class CRUDConversation(
         # 1. add the new convo to the conversation table
         # 2. update group_member_assoication table to add the existing users to the new convo
         # NOTE: Check if conversation already exists
-        db_convo = Conversation(conversation_name=convo_name)
-        db.add(db_convo)
-        return db_convo
+        return await super().create(db=db, obj_in=obj_in)
 
     async def update_users(
         self, db: AsyncSession, *, convo_id: int, users: set[User], method: Method

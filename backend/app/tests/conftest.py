@@ -1,4 +1,5 @@
 import pytest
+from typing import AsyncGenerator
 from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,7 +8,7 @@ from app.dependencies import get_db
 
 # specifies pytest to use asyncio for anyio markers
 @pytest.fixture(scope="session")
-def anyio_backend():
+def anyio_backend() -> str:
     return "asyncio"
 
 
@@ -17,11 +18,11 @@ def anyio_backend():
 
 
 @pytest.fixture(scope="session")
-def faker():
+def faker() -> Faker:
     return Faker()
 
 
 @pytest.fixture
-async def db() -> AsyncSession:
+async def db() -> AsyncGenerator[AsyncSession, None]:
     async for session in get_db():  # iteratoring over the generator and returning individual elems
         yield session

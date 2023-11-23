@@ -4,8 +4,8 @@ from typing import Any
 from pydantic import EmailStr
 
 from app.models import User
-from app.schemas.user import UserCreate, UserUpdate, UserInDB
-from app.exceptions import *
+from app.schemas.user import UserCreate, UserUpdate
+from app.exceptions import UserAlreadyExistsException
 from app.core import security
 from .base import CRUDBase
 
@@ -23,7 +23,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         hashed_pw = security.hash_password(obj_in.password)
 
         # Exclude the password from the input model and add the hashed password
-        db_obj: UserInDB = User(
+        db_obj = User(
             **obj_in.model_dump(exclude={"password"}), password_hash=hashed_pw
         )
         db.add(db_obj)

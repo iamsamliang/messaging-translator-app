@@ -11,7 +11,7 @@ from app.tests.utils.convo import create_random_convo
 
 
 @pytest.mark.anyio
-async def test_create_and_get_message(db: AsyncSession, faker: Faker):
+async def test_create_and_get_message(db: AsyncSession, faker: Faker) -> None:
     random_user = await create_random_user_stochastic(db=db, faker=faker)
     random_convo = await create_random_convo(db=db)
     await db.flush()
@@ -33,7 +33,7 @@ async def test_create_and_get_message(db: AsyncSession, faker: Faker):
 
 
 @pytest.mark.anyio
-async def test_delete_msg(db: AsyncSession, faker: Faker):
+async def test_delete_msg(db: AsyncSession, faker: Faker) -> None:
     random_user = await create_random_user_stochastic(db=db, faker=faker)
     random_convo = await create_random_convo(db=db)
     await db.flush()
@@ -56,5 +56,5 @@ async def test_delete_msg(db: AsyncSession, faker: Faker):
 
 # functionality not implemented yet
 @pytest.mark.anyio
-async def test_update_msg(db: AsyncSession, faker: Faker):
+async def test_update_msg(db: AsyncSession, faker: Faker) -> None:
     pass

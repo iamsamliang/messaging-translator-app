@@ -6,8 +6,8 @@ async def translate(
     sender_id: int,
     text_input: str,
     target_language: str,
-    chat_history: list[tuple],
-):
+    chat_history: list[tuple[int, str]],
+) -> str | None:
     # User {message.sender_id}: {translation.text}
     # User ....
 
@@ -20,7 +20,7 @@ async def translate(
 
     for message in chat_history:
         PROMPT_MSGS.append(
-            {"role": "user", "name": f"User {message[0]}", "content": {message[1]}}
+            {"role": "user", "name": f"User {message[0]}", "content": message[1]}
         )
 
     PROMPT_MSGS.append(
@@ -38,7 +38,7 @@ async def translate(
     #     f"\nUser {sender_id} sent '{text_input}'. Translate it to {target_language}.\n"
     # )
 
-    response = await openai.chat.completions.create(
+    response = openai.chat.completions.create(
         model="gpt-4",
         messages=PROMPT_MSGS,
     )

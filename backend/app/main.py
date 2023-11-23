@@ -93,7 +93,7 @@ async def delete_user(db: Annotated[AsyncSession, Depends(get_db)], user_id: int
 async def login_for_token(
     db: Annotated[AsyncSession, Depends(get_db)],
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-) -> JSONResponse:
+) -> dict[str, str]:
     login_user = await crud.user.get_by_email(db, form_data.username)
     if not login_user or not security.verify_password(
         form_data.password, login_user.password_hash
@@ -126,6 +126,11 @@ async def get_convo(
     db: Annotated[AsyncSession, Depends(get_db)], conversation_id: int
 ) -> models.Conversation:
     convo = await crud.conversation.get(db=db, id=conversation_id)
+    if convo is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Convo w/ id {conversation_id} doesn't exist",
+        )
     return convo
 
 
@@ -136,20 +141,23 @@ async def create_convo(
 ) -> models.Conversation:
     try:
         new_convo = await crud.conversation.create(
-            db=db, convo_name=request["conversation_name"]
+            db=db,
+            obj_in=schemas.ConversationCreateDB(
+                conversation_name=request.conversation_name
+            ),
         )
         await db.commit()  # For ACID compliancy w/ transactions (multiple CRUD ops per endpoint)
         members = await new_convo.awaitable_attrs.members
         user_emails: set[str] = set()
         for user_id in request.user_ids:
-            email = user_id["email"]
+            email = user_id.email
             if email not in user_emails:
                 user_emails.add(email)
-                user: models.User = await crud.user.get_by_email(db=db, email=email)
+                user = await crud.user.get_by_email(db=db, email=email)
                 if not user:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"User w/ email {user_id['email']} doesn't exist",
+                        detail=f"User w/ email {user_id.email} doesn't exist",
                     )
                 members.append(user)
         return new_convo
@@ -194,11 +202,11 @@ async def update_convo_users(
 ) -> models.Conversation:
     users: set[models.User] = set()
     for user_id in request.user_ids:
-        user: models.User = await crud.user.get_by_email(db=db, email=user_id["email"])
+        user = await crud.user.get_by_email(db=db, email=user_id.email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User w/ email {user_id['email']} doesn't exist",
+                detail=f"User w/ email {user_id.email} doesn't exist",
             )
         users.add(user)
     try:
@@ -219,7 +227,9 @@ async def update_convo_users(
 
 
 @app.delete("/conversation/{convo_id}", response_model=schemas.ConversationResponse)
-async def delete_convo(db: Annotated[AsyncSession, Depends(get_db)], convo_id: int):
+async def delete_convo(
+    db: Annotated[AsyncSession, Depends(get_db)], convo_id: int
+) -> models.Conversation:
     try:
         res = await crud.conversation.delete(db=db, id=convo_id)
         if res is None:
@@ -239,18 +249,29 @@ async def delete_convo(db: Annotated[AsyncSession, Depends(get_db)], convo_id: i
 @app.get("/messages/{conversation_id}/{user_id}")
 async def get_messages(
     db: Annotated[AsyncSession, Depends(get_db)], conversation_id: int, user_id: int
-):
+) -> dict[str, list[str]]:
     chat_history = []
     convo = await crud.conversation.get(db=db, id=conversation_id)
+    if convo is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Convo w/ id {conversation_id} doesn't exist",
+        )
 
     for message in convo.messages:
         if message.sender_id == user_id:
             chat_history.append(message.original_text)
         else:
-            translation = await db.execute(
-                select(models.Translation.translation).filter_by(
-                    message_id=message.id, target_user_id=user_id
+            translation = (
+                (
+                    await db.execute(
+                        select(models.Translation.translation).filter_by(
+                            message_id=message.id, target_user_id=user_id
+                        )
+                    )
                 )
+                .scalars()
+                .first()
             )
             chat_history.append(translation)
 
@@ -260,7 +281,7 @@ async def get_messages(
 @app.post("/messages", response_model=schemas.MessageResponse)
 async def create_message(
     db: Annotated[AsyncSession, Depends(get_db)], request: schemas.MessageCreate
-):
+) -> models.Message:
     try:
         # 1) use conversation_id to get all users in the conversation, exclude sender
         # 2) for each user, grab their desired language
@@ -269,6 +290,11 @@ async def create_message(
 
         message = await crud.message.create(db=db, obj_in=request)
         convo = await crud.conversation.get(db=db, id=request.conversation_id)
+        if convo is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Convo w/ id {request.conversation_id} doesn't exist",
+            )
 
         chat_history = []
         for message in convo.messages:
@@ -286,10 +312,10 @@ async def create_message(
         for member in convo.members:
             if member.id != request.sender_id:
                 text = await translation.gpt.translate(
-                    request.sender_id,
-                    member.target_language,
-                    request.original_text,
-                    chat_history,
+                    sender_id=request.sender_id,
+                    target_language=member.target_language,
+                    text_input=request.original_text,
+                    chat_history=chat_history,
                 )
                 # create the translation row
 

@@ -5,35 +5,44 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.encoders import jsonable_encoder
 
 from app import crud
-from app.schemas import ConversationNameUpdate
+from app.schemas import ConversationCreateDB, ConversationNameUpdate, Method
 from app.tests.utils.user import create_random_user_stochastic
 
 
 @pytest.mark.anyio
-async def test_create_convo(db: AsyncSession):
+async def test_create_convo(db: AsyncSession) -> None:
     conversation_name = "create conversation"
-    created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
+
+    created_convo = await crud.conversation.create(
+        db=db, obj_in=ConversationCreateDB(conversation_name=conversation_name)
+    )
     await db.commit()
 
     assert created_convo.conversation_name == conversation_name
 
 
 @pytest.mark.anyio
-async def test_get_convo(db: AsyncSession):
+async def test_get_convo(db: AsyncSession) -> None:
     conversation_name = "get conversation"
-    created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
+    created_convo = await crud.conversation.create(
+        db=db, obj_in=ConversationCreateDB(conversation_name=conversation_name)
+    )
     await db.commit()
 
     get_convo = await crud.conversation.get(db=db, id=created_convo.id)
     assert get_convo
     assert get_convo.conversation_name == created_convo.conversation_name
+    assert await get_convo.awaitable_attrs.messages == []
+    assert await get_convo.awaitable_attrs.members == []
     assert jsonable_encoder(get_convo) == jsonable_encoder(created_convo)
 
 
 @pytest.mark.anyio
-async def test_delete_convo(db: AsyncSession):
+async def test_delete_convo(db: AsyncSession) -> None:
     conversation_name = "delete conversation"
-    created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
+    created_convo = await crud.conversation.create(
+        db=db, obj_in=ConversationCreateDB(conversation_name=conversation_name)
+    )
     await db.commit()
     id = created_convo.id
 
@@ -43,9 +52,11 @@ async def test_delete_convo(db: AsyncSession):
 
 
 @pytest.mark.anyio
-async def test_update_name(db: AsyncSession):
+async def test_update_name(db: AsyncSession) -> None:
     conversation_name = "change conversation name"
-    created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
+    created_convo = await crud.conversation.create(
+        db=db, obj_in=ConversationCreateDB(conversation_name=conversation_name)
+    )
     await db.commit()
     old_id = created_convo.id
     new_name = "change conversation name new"
@@ -57,14 +68,17 @@ async def test_update_name(db: AsyncSession):
     await db.commit()
     updated_convo = await crud.conversation.get(db=db, id=old_id)
 
+    assert updated_convo
     assert updated_convo.conversation_name == new_name
     assert updated_convo.id == old_id
 
 
 @pytest.mark.anyio
-async def test_add_remove_users(db: AsyncSession, faker: Faker):
+async def test_add_remove_users(db: AsyncSession, faker: Faker) -> None:
     conversation_name = "add/delete users"
-    created_convo = await crud.conversation.create(db=db, convo_name=conversation_name)
+    created_convo = await crud.conversation.create(
+        db=db, obj_in=ConversationCreateDB(conversation_name=conversation_name)
+    )
     await db.commit()
     assert await created_convo.awaitable_attrs.members == []
     assert await created_convo.awaitable_attrs.messages == []
@@ -79,7 +93,7 @@ async def test_add_remove_users(db: AsyncSession, faker: Faker):
         users.add(await create_random_user_stochastic(db=db, faker=faker))
     assert len(users) == 5
     updated_convo = await crud.conversation.update_users(
-        db=db, convo_id=created_convo.id, users=users, method="add"
+        db=db, convo_id=created_convo.id, users=users, method=Method.ADD
     )
     await db.commit()
 
@@ -96,7 +110,7 @@ async def test_add_remove_users(db: AsyncSession, faker: Faker):
     assert len(users) == 2
 
     await crud.conversation.update_users(
-        db=db, convo_id=created_convo.id, users=removed_users, method="remove"
+        db=db, convo_id=created_convo.id, users=removed_users, method=Method.REMOVE
     )
     await db.commit()
 

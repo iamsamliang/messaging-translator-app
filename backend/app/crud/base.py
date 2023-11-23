@@ -25,7 +25,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.model = model
 
     async def get(self, db: AsyncSession, id: int) -> Optional[ModelType]:
-        result = await db.execute(select(self.model).filter(self.model.id == id))
+        result = await db.execute(select(self.model).filter(self.model.id == id))  # type: ignore
         return result.scalars().first()
         # return db.query(self.model).filter(self.model.id == id).first()
 
@@ -57,7 +57,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         # await db.refresh(db_obj)
         return db_obj
 
-    async def delete(self, db: AsyncSession, *, id: int) -> ModelType:
+    async def delete(self, db: AsyncSession, *, id: int) -> ModelType | None:
         obj = await self.get(db=db, id=id)
         if obj:
             await db.delete(obj)

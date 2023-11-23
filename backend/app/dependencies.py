@@ -42,14 +42,14 @@ async def verify_current_user(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
-        username: str = payload.get("sub")
+        username = payload.get("sub")
         if username is None:
             raise credentials_exception
         token_payload = schemas.TokenPayLoad(username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
 
-    user = crud.user.get_by_email(db=db, email=token_payload.username)
+    user = await crud.user.get_by_email(db=db, email=token_payload.username)
     if not user:
         raise credentials_exception
     return user

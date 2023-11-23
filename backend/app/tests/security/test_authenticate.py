@@ -8,7 +8,7 @@ from app.tests.utils.user import create_random_user
 
 
 @pytest.mark.anyio
-async def test_authenticate_user(db: AsyncSession, faker: Faker):
+async def test_authenticate_user(db: AsyncSession, faker: Faker) -> None:
     email = faker.email()
     password = faker.password()
     target_language = "ENGLISH"
@@ -27,6 +27,7 @@ async def test_authenticate_user(db: AsyncSession, faker: Faker):
 
     get_user = await crud.user.get_by_email(db=db, email=email)
     # authenticate user
+    assert get_user
     assert email == get_user.email
     assert security.verify_password(password, get_user.password_hash)
     assert not security.verify_password(faker.password(), get_user.password_hash)
