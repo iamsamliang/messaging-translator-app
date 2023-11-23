@@ -8,7 +8,7 @@ from .exceptions import *
 
 async def user_already_exists_exception_handler(
     request: Request, exc: UserAlreadyExistsException
-):
+) -> JSONResponse:
     return JSONResponse(
         status_code=400,
         content={"detail": exc.message},

@@ -1,5 +1,6 @@
 import pytest
 from faker import Faker
+from typing import Type
 
 from pydantic import ValidationError
 from fastapi.encoders import jsonable_encoder
@@ -18,7 +19,11 @@ from app.tests.utils.utils import random_string
     [(None), (ValidationError), (UserAlreadyExistsException)],
 )
 @pytest.mark.anyio
-async def test_create_user(expected_exception, db: AsyncSession, faker: Faker) -> None:
+async def test_create_user(
+    expected_exception: Type[Exception] | None,
+    db: AsyncSession,
+    faker: Faker,
+) -> None:
     first_name = random_string(100)
     last_name = random_string(100)
     profile_photo = random_string(200)

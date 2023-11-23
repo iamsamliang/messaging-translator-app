@@ -40,7 +40,7 @@ async def translate(
 
     response = openai.chat.completions.create(
         model="gpt-4",
-        messages=PROMPT_MSGS,
+        messages=PROMPT_MSGS,  # type: ignore
     )
 
     return response.choices[0].message.content

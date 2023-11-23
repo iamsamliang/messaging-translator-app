@@ -73,7 +73,9 @@ async def update_user(
 
 
 @app.delete("/users/{user_id}", response_model=schemas.UserOut)
-async def delete_user(db: Annotated[AsyncSession, Depends(get_db)], user_id: int):
+async def delete_user(
+    db: Annotated[AsyncSession, Depends(get_db)], user_id: int
+) -> models.User:
     try:
         res = await crud.user.delete(db=db, id=user_id)
         if res is None:
@@ -174,7 +176,7 @@ async def update_convo_name(
     db: Annotated[AsyncSession, Depends(get_db)],
     convo_id: int,
     request: schemas.ConversationNameUpdate,
-):
+) -> models.Conversation:
     convo = await crud.conversation.get(db=db, id=convo_id)
     if convo is None:
         raise HTTPException(
@@ -273,6 +275,11 @@ async def get_messages(
                 .scalars()
                 .first()
             )
+            if translation is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"translation w/ message id {message.id} and target user id {user_id} could not be found",
+                )
             chat_history.append(translation)
 
     return {"history": chat_history}
@@ -317,8 +324,14 @@ async def create_message(
                     text_input=request.original_text,
                     chat_history=chat_history,
                 )
-                # create the translation row
 
+                if text is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"translation of {request.original_text} to {member.target_language} for target user {member.id} could not be generated",
+                    )
+
+                # create the translation row
                 new_translation = await crud.translation.create(
                     db=db,
                     obj_in=schemas.TranslationCreate(
@@ -326,7 +339,6 @@ async def create_message(
                         language=member.target_language,
                         target_user_id=member.id,
                         message_id=message.id,
-                        user=member,
                     ),
                 )
                 message.translations.append(new_translation)
