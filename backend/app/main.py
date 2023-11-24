@@ -2,7 +2,7 @@
 from typing import Annotated
 from datetime import timedelta
 
-from fastapi import FastAPI, Depends, status
+from fastapi import FastAPI, Depends, Response, status
 from sqlalchemy import select
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -22,6 +22,9 @@ app.add_exception_handler(
     UserAlreadyExistsException, user_already_exists_exception_handler
 )
 
+# Shared Annotated Dependencies
+DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
+
 
 # Users
 @app.get("/users/me", response_model=schemas.UserOut)
@@ -31,14 +34,16 @@ async def get_me(
     return current_user
 
 
-@app.post("/users", response_model=schemas.UserOut)
+@app.post("/users", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
 async def create_user(
-    db: Annotated[AsyncSession, Depends(get_db)], user_in: schemas.UserCreate
+    db: DatabaseDep,
+    user_in: schemas.UserCreate,
+    response: Response,
 ) -> models.User:
     try:
         user = await crud.user.create(db=db, obj_in=user_in)
         await db.commit()
-        await db.refresh(user)
+        response.headers["Location"] = f"/users/{user.id}"
         return user
     except IntegrityError as e:
         await db.rollback()
@@ -49,7 +54,7 @@ async def create_user(
 
 @app.patch("/users/{user_id}", response_model=schemas.UserOut)
 async def update_user(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DatabaseDep,
     user_id: int,
     request: schemas.UserUpdate,
 ) -> models.User:
@@ -63,7 +68,6 @@ async def update_user(
         res = await crud.user.update(db=db, db_obj=curr_user, obj_in=request)
 
         await db.commit()
-        await db.refresh(res)
         return res
     except IntegrityError as e:
         await db.rollback()
@@ -72,10 +76,12 @@ async def update_user(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@app.delete("/users/{user_id}", response_model=schemas.UserOut)
-async def delete_user(
-    db: Annotated[AsyncSession, Depends(get_db)], user_id: int
-) -> models.User:
+@app.delete(
+    "/users/{user_id}",
+    response_model=schemas.UserOut,
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_user(db: DatabaseDep, user_id: int) -> None:
     try:
         res = await crud.user.delete(db=db, id=user_id)
         if res is None:
@@ -84,7 +90,6 @@ async def delete_user(
                 detail=f"User w/ id {user_id} doesn't exist",
             )
         await db.commit()
-        return res
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -93,7 +98,7 @@ async def delete_user(
 # Login
 @app.post("/login/access-token", response_model=schemas.TokenOut)
 async def login_for_token(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DatabaseDep,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> dict[str, str]:
     login_user = await crud.user.get_by_email(db, form_data.username)
@@ -124,9 +129,7 @@ async def login_for_token(
 @app.get(
     "/conversations/{conversation_id}", response_model=schemas.ConversationResponse
 )
-async def get_convo(
-    db: Annotated[AsyncSession, Depends(get_db)], conversation_id: int
-) -> models.Conversation:
+async def get_convo(db: DatabaseDep, conversation_id: int) -> models.Conversation:
     convo = await crud.conversation.get(db=db, id=conversation_id)
     if convo is None:
         raise HTTPException(
@@ -137,9 +140,13 @@ async def get_convo(
 
 
 ## How do we identify a conversation that already exists?
-@app.post("/conversations", response_model=schemas.ConversationResponse)
+@app.post(
+    "/conversations",
+    response_model=schemas.ConversationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_convo(
-    db: Annotated[AsyncSession, Depends(get_db)], request: schemas.ConversationCreate
+    db: DatabaseDep, request: schemas.ConversationCreate, response: Response
 ) -> models.Conversation:
     try:
         new_convo = await crud.conversation.create(
@@ -162,6 +169,7 @@ async def create_convo(
                         detail=f"User w/ email {user_id.email} doesn't exist",
                     )
                 members.append(user)
+        response.headers["Location"] = f"/conversations/{new_convo.id}"
         return new_convo
     except IntegrityError as e:
         await db.rollback()
@@ -173,7 +181,7 @@ async def create_convo(
     response_model=schemas.ConversationResponse,
 )
 async def update_convo_name(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DatabaseDep,
     convo_id: int,
     request: schemas.ConversationNameUpdate,
 ) -> models.Conversation:
@@ -186,7 +194,6 @@ async def update_convo_name(
     try:
         res = await crud.conversation.update(db=db, db_obj=convo, obj_in=request)
         await db.commit()
-        await db.refresh(res)
         return res
     except IntegrityError as e:
         await db.rollback()
@@ -198,7 +205,7 @@ async def update_convo_name(
     response_model=schemas.ConversationResponse,
 )
 async def update_convo_users(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DatabaseDep,
     convo_id: int,
     request: schemas.ConversationMemberUpdate,
 ) -> models.Conversation:
@@ -221,17 +228,18 @@ async def update_convo_users(
                 detail=f"Conversation w/ id {convo_id} doesn't exist",
             )
         await db.commit()
-        await db.refresh(res)
         return res
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@app.delete("/conversation/{convo_id}", response_model=schemas.ConversationResponse)
-async def delete_convo(
-    db: Annotated[AsyncSession, Depends(get_db)], convo_id: int
-) -> models.Conversation:
+@app.delete(
+    "/conversation/{convo_id}",
+    response_model=schemas.ConversationResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_convo(db: DatabaseDep, convo_id: int) -> None:
     try:
         res = await crud.conversation.delete(db=db, id=convo_id)
         if res is None:
@@ -240,7 +248,6 @@ async def delete_convo(
                 detail=f"Conversation w/ id {convo_id} doesn't exist",
             )
         await db.commit()
-        return res
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -249,8 +256,8 @@ async def delete_convo(
 # Messages
 ## User needs to be able to create messages, get their messages (no update or delete, at least no delete internally)
 @app.get("/messages/{conversation_id}/{user_id}")
-async def get_messages(
-    db: Annotated[AsyncSession, Depends(get_db)], conversation_id: int, user_id: int
+async def get_messages_sent(
+    db: DatabaseDep, conversation_id: int, user_id: int
 ) -> dict[str, list[str]]:
     chat_history = []
     convo = await crud.conversation.get(db=db, id=conversation_id)
@@ -260,6 +267,8 @@ async def get_messages(
             detail=f"Convo w/ id {conversation_id} doesn't exist",
         )
 
+    # this is getting the chat history in the sender's language. Either there is a chat history
+    # in their language, or their isn't bc the sender changed their set langauge
     for message in convo.messages:
         if message.sender_id == user_id:
             chat_history.append(message.original_text)
@@ -285,9 +294,13 @@ async def get_messages(
     return {"history": chat_history}
 
 
-@app.post("/messages", response_model=schemas.MessageResponse)
+@app.post(
+    "/messages",
+    response_model=schemas.MessageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_message(
-    db: Annotated[AsyncSession, Depends(get_db)], request: schemas.MessageCreate
+    db: DatabaseDep, request: schemas.MessageCreate, response: Response
 ) -> models.Message:
     try:
         # 1) use conversation_id to get all users in the conversation, exclude sender
@@ -344,6 +357,9 @@ async def create_message(
                 message.translations.append(new_translation)
 
         await db.commit()
+        response.headers[
+            "Location"
+        ] = f"/messages/{message.conversation_id}/{message.sender_id}"
         return message
     except IntegrityError as e:
         await db.rollback()
