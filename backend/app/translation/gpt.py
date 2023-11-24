@@ -14,19 +14,20 @@ async def translate(
     PROMPT_MSGS = [
         {
             "role": "system",
-            "content": "You are a messages translator. You're given the chat history.",
+            "content": "Your job is to translate messages that users text to each other. You're given the chat history as context to help translating and who sent the newest message. Only return the translation of that message",
         },
     ]
 
+    # messages are all in the language of the sender for better accuracy
     for message in chat_history:
         PROMPT_MSGS.append(
-            {"role": "user", "name": f"User {message[0]}", "content": message[1]}
+            {"role": "user", "name": f"User_{message[0]}", "content": message[1]}
         )
 
     PROMPT_MSGS.append(
         {
             "role": "user",
-            "name": f"User {sender_id}",
+            "name": f"User_{sender_id}",
             "content": f"User {sender_id} sent '{text_input}'. Translate it to {target_language}.",
         }
     )
