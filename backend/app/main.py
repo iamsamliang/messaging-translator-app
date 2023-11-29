@@ -49,7 +49,9 @@ async def create_user(
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except UserAlreadyExistsException:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+        )
 
 
 @app.patch("/users/{user_id}", response_model=schemas.UserOut)
@@ -78,7 +80,6 @@ async def update_user(
 
 @app.delete(
     "/users/{user_id}",
-    response_model=schemas.UserOut,
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_user(db: DatabaseDep, user_id: int) -> None:
@@ -235,8 +236,7 @@ async def update_convo_users(
 
 
 @app.delete(
-    "/conversation/{convo_id}",
-    response_model=schemas.ConversationResponse,
+    "/conversations/{convo_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_convo(db: DatabaseDep, convo_id: int) -> None:

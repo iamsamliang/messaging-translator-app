@@ -39,12 +39,14 @@ class CRUDConversation(
 
         if method == Method.ADD:
             for user in users:
-                if user not in convo.members:  # not in group
-                    convo.members.append(user)  # NOTE: need to validate if user exists
+                if user not in await convo.awaitable_attrs.members:  # not in group
+                    (await convo.awaitable_attrs.members).append(
+                        user
+                    )  # NOTE: need to validate if user exists
         else:
             for user in users:
-                if user in convo.members:  # user is in group
-                    convo.members.remove(
+                if user in await convo.awaitable_attrs.members:  # user is in group
+                    (await convo.awaitable_attrs.members).remove(
                         user
                     )  # NOTE: need to check if user exists maybe
         # await db.commit()
