@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.api.dependencies import get_db
 
 
 # specifies pytest to use asyncio for anyio markers

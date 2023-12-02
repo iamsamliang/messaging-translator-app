@@ -9,11 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import crud, models, schemas
 from app.core import security
 from app.core.config import settings
-from .database import AsyncSessionLocal
+from ..database import AsyncSessionLocal
 
 # tokenURL is used for documentation. Tells client where to get an access token
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"login/access-token")
-
 
 # async def get_db() -> Generator:
 #     try:
@@ -61,3 +60,7 @@ async def verify_current_admin(
     if not current_user.is_admin:
         raise HTTPException(status_code=400, detail="The user is not an admin")
     return current_user
+
+
+# Shared Annotated Dependencies
+DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
