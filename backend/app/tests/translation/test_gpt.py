@@ -5,7 +5,7 @@ from app.translation.gpt import translate
 
 
 @pytest.mark.anyio
-async def test_translate():
+async def test_translate() -> None:
     text_input = "hey can you fix the error in the code? Then push it to Github."
     result = await translate(
         sender_id=1,
