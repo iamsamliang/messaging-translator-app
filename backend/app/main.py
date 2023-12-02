@@ -140,7 +140,7 @@ async def get_convo(db: DatabaseDep, conversation_id: int) -> models.Conversatio
     return convo
 
 
-## How do we identify a conversation that already exists?
+# TODO: How do we identify a conversation that already exists?
 @app.post(
     "/conversations",
     response_model=schemas.ConversationResponse,
@@ -255,7 +255,9 @@ async def delete_convo(db: DatabaseDep, convo_id: int) -> None:
 
 
 # Messages
-## User needs to be able to create messages, get their messages (no update or delete, at least no delete internally)
+
+
+# this is getting messages to display in the UI, so we know who's messages are who's
 @app.get("/messages/{conversation_id}/{user_id}")
 async def get_messages_sent(
     db: DatabaseDep, conversation_id: int, user_id: int
@@ -270,7 +272,7 @@ async def get_messages_sent(
 
     # this is getting the chat history in the sender's language. Either there is a chat history
     # in their language, or their isn't bc the sender changed their set langauge
-    for message in convo.messages:
+    for message in await convo.awaitable_attrs.messages:
         if message.sender_id == user_id:
             chat_history.append(message.original_text)
         else:
@@ -317,15 +319,16 @@ async def create_message(
                 detail=f"Convo w/ id {request.conversation_id} doesn't exist",
             )
 
+        # TODO: Implement only grabbing the previous X messages in chat
         chat_history = []
-        for message in await convo.awaitable_attrs.messages:
-            if message.orig_language == request.orig_language:
-                chat_history.append((request.sender_id, message.original_text))
+        for history_msg in await convo.awaitable_attrs.messages:
+            if history_msg.orig_language == request.orig_language:
+                chat_history.append((request.sender_id, history_msg.original_text))
             else:
                 # if the message isn't in the language of the sender, then see if there's a translation for it
-                for tls in await message.awaitable_attrs.translations:
+                for tls in await history_msg.awaitable_attrs.translations:
                     if tls.language == request.orig_language:
-                        chat_history.append((message.sender_id, tls.translation))
+                        chat_history.append((history_msg.sender_id, tls.translation))
 
         (await convo.awaitable_attrs.messages).append(message)
         await db.flush()
@@ -367,4 +370,4 @@ async def create_message(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-# need a method to update received_at attribute of a Message
+# TODO: a method to update received_at attribute of a Message
