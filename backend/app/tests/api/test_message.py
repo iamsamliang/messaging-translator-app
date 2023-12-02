@@ -173,5 +173,3 @@ async def test_get_messages_sent(db: AsyncSession, faker: Faker) -> None:
         assert response.status_code == 200
         chat_history = response.json()
         assert len(chat_history["history"]) == 3
-
-        debug(chat_history["history"])

@@ -4,7 +4,6 @@ from datetime import timedelta
 
 from fastapi import FastAPI, Depends, Response, status
 from sqlalchemy import select
-from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +26,7 @@ DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 # Users
+# TODO: Test this endpoint
 @app.get("/users/me", response_model=schemas.UserOut)
 async def get_me(
     current_user: Annotated[models.User, Depends(verify_current_user)]
@@ -97,6 +97,7 @@ async def delete_user(db: DatabaseDep, user_id: int) -> None:
 
 
 # Login
+# TODO: Test this endpoint
 @app.post("/login/access-token", response_model=schemas.TokenOut)
 async def login_for_token(
     db: DatabaseDep,
@@ -297,6 +298,7 @@ async def get_messages_sent(
     return {"history": chat_history}
 
 
+# TODO: I might need to append the user id to each message so I can use that in the front end to display the message left or right
 @app.post(
     "/messages",
     response_model=schemas.MessageResponse,
