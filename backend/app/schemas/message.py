@@ -11,17 +11,6 @@ from datetime import datetime
 # no schema for read because can only get a message by it's ID (only unique identifier)
 
 
-class MessageBase(BaseModel):
-    conversation_id: int
-    sender_id: int
-    receiver_id: int
-    original_text: str
-    translated_text: str
-    orig_language: Annotated[
-        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ]
-
-
 class MessageCreate(BaseModel):
     """Input Schema for function Message.Create"""
 

@@ -127,6 +127,7 @@ async def test_update_convo_members(db: AsyncSession, faker: Faker) -> None:
         for idx, member in enumerate(await new_convo.awaitable_attrs.members):
             assert member.email == user_emails[idx]["email"]  # type: ignore
 
+        # keep 2 users
         stay_user_email = user_emails.pop()["email"]
         user_emails.pop()
 
@@ -134,6 +135,7 @@ async def test_update_convo_members(db: AsyncSession, faker: Faker) -> None:
         assert stay_user
         assert len(await stay_user.awaitable_attrs.conversations) == 1
 
+        # remove 1 user from a convo of 3
         response = await ac.patch(
             f"/conversations/{convo.id}/update-members",
             json={"method": "remove", "user_ids": user_emails},

@@ -156,7 +156,6 @@ async def create_convo(
                 conversation_name=request.conversation_name
             ),
         )
-        await db.commit()  # For ACID compliancy w/ transactions (multiple CRUD ops per endpoint)
         members = await new_convo.awaitable_attrs.members
         user_emails: set[str] = set()
         for user_id in request.user_ids:
@@ -170,6 +169,8 @@ async def create_convo(
                         detail=f"User w/ email {user_id.email} doesn't exist",
                     )
                 members.append(user)
+        # note this needs to be here for the group_member table to update
+        await db.commit()
         response.headers["Location"] = f"/conversations/{new_convo.id}"
         return new_convo
     except IntegrityError as e:
@@ -317,19 +318,19 @@ async def create_message(
             )
 
         chat_history = []
-        for message in convo.messages:
+        for message in await convo.awaitable_attrs.messages:
             if message.orig_language == request.orig_language:
                 chat_history.append((request.sender_id, message.original_text))
             else:
                 # if the message isn't in the language of the sender, then see if there's a translation for it
-                for tls in message.translations:
+                for tls in await message.awaitable_attrs.translations:
                     if tls.language == request.orig_language:
                         chat_history.append((message.sender_id, tls.translation))
 
-        convo.messages.append(message)
+        (await convo.awaitable_attrs.messages).append(message)
         await db.flush()
 
-        for member in convo.members:
+        for member in await convo.awaitable_attrs.members:
             if member.id != request.sender_id:
                 text = await translation.gpt.translate(
                     sender_id=request.sender_id,
@@ -354,7 +355,7 @@ async def create_message(
                         message_id=message.id,
                     ),
                 )
-                message.translations.append(new_translation)
+                (await message.awaitable_attrs.translations).append(new_translation)
 
         await db.commit()
         response.headers[

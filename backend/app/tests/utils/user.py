@@ -9,7 +9,9 @@ from app.schemas import UserCreate
 from .utils import random_string
 
 
-async def create_random_user_stochastic(db: AsyncSession, faker: Faker) -> User:
+async def create_random_user_stochastic(
+    db: AsyncSession, faker: Faker, target_lang: str = "english"
+) -> User:
     first_name = random_string(random.randint(5, 30))
     last_name = random_string(random.randint(5, 30))
     profile_photo = random_string(random.randint(5, 30))
@@ -18,7 +20,7 @@ async def create_random_user_stochastic(db: AsyncSession, faker: Faker) -> User:
         last_name=last_name,
         profile_photo=profile_photo,
         email=faker.email(),
-        target_language="english",
+        target_language=target_lang,
         is_admin=False,
         password=faker.password(),
     )

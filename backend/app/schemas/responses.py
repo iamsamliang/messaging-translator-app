@@ -33,10 +33,10 @@ class MessageResponse(BaseModel):
     conversation_id: int
     sender_id: int
     # receiver_id: int
-    # original_text: str
-    # orig_language: Annotated[
-    #     str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    # ]
+    original_text: str
+    orig_language: Annotated[
+        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
+    ]
     # conversation: "ConversationResponse"
     # translations: list["TranslationResponse"]
 
