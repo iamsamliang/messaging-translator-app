@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messaging App</title>
+    <link rel="stylesheet" href="./css/message.css">
+</head>
+<body>
+    <!-- Main container -->
+    <main class="messaging-app">
+        
+        <!-- Sidebar for contacts -->
+        <aside class="contacts-sidebar">
+            
+            <!-- Sidebar Header -->
+            <header class="contacts-sidebar-header">
+                <!-- Search bar -->
+                <div class="contacts-search-bar">
+                    <input type="text" placeholder="Search...">
+                </div>
+                
+                <!-- Create new chat button -->
+                <div class="create-chat-btn-container">
+                    <button class="create-chat-btn" aria-label="New chat">+</button>
+                </div>
+                <!-- Using a plus sign for simplicity -->
+            </header>
+
+            <!-- Contact list -->
+            <ul class="contact-list">
+                <!-- Individual Contact 1 -->
+                <li class="contact">
+                    <div class="contact-photo">
+                        <img src="./assets/images/profile_photo.png" alt="Profile Photo">
+                    </div>
+                    <div class="contact-info">
+                        <div class="contact-name">Robert</div>
+                        <div class="last-message">Say Hello to Alice</div>
+                    </div>
+                    <div class="message-info">
+                        <div class="last-message-time">18:23</div>
+                        <div class="unread-indicator">2</div>
+                    </div>
+                </li>
+                <!-- Individual Contact 2 -->
+                <!-- .................... -->
+                <!-- Individual Contact N -->
+            </ul>
+        
+        </aside>
+
+        
+        <!-- Actual Chat Area -->
+        <section class="chat-area">
+        
+            <!-- Individual Chat Header -->
+            <header class="chat-header">
+                <div class="chat-photo-name-container">
+                    <div class="chat-photo">
+                        <img src="./assets/images/profile_photo.png" alt="Profile Photo">
+                    </div>
+                    <div class="chat-name">Robert</div>
+                </div>
+                <div class="chat-options"></div>
+            </header>
+        
+            <!-- Individual Chat Content -->
+            <div class="message-container">
+                <!-- Repeat this 'message' div for each message in the chat -->
+                <div class="message">
+                    <div class="message-content">I got the job at NASA! 🚀🌌</div>
+                    <div class="message-time">17:29</div>
+                </div>
+                <div class="message">
+                    <div class="message-content">This is a realy long message.This is a realy long message.This is a realy long message.This is a realy long message.This is a realy long message.This is a realy long message.This is a realy long message.This is a realy long message.This is a realy long message.This is a realy long message. </div>
+                    <div class="message-time">17:29</div>
+                </div>
+                <!-- Add more messages as needed -->
+            </div>
+
+            <!-- Individual Chat Content for Group Chats-->
+            <!-- <div class="message-container">
+                <div class="message">
+                    <div class="message-sender-photo"></div>
+                    <div class="message-sender-name"></div>
+                    <div class="message-content"></div>
+                    <div class="message-time"></div>
+                </div>
+            </div> -->
+        
+            <!-- Individual Chat Footer for Sending Message -->
+            <footer>
+                <form class="message-input-area" id="sendMessageForm">
+                    <input id="messageInput" type="text" placeholder="Write a message...">
+                    <button type="submit" id="sendButton" class="send-message">Send</button>
+                </form>
+            </footer>
+        
+        </section>
+
+
+    </main>
+</body>
+</html>
