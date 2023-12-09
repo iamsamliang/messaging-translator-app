@@ -2,6 +2,7 @@
 	import type { IMessage } from '$lib/interfaces/imessage.interface';
 	import { messages } from '$lib/stores/stores';
 	import { getCurrentTime } from '$lib/utils';
+	import { sendMessageSocket } from '$lib/websocket';
 
 	let inputValue = '';
 
@@ -10,23 +11,20 @@
 		return message.length > 0;
 	}
 
-	function addMessageToContainer(message: string): void {
-		const newMessage: IMessage = {
-			content: message,
-			time: getCurrentTime(),
-			fromCurrUser: true
-		};
-		messages.update((m) => [...m, newMessage]);
-	}
-
 	// Send the message to the server over websockets
 	function sendMessage(): void {
 		const message: string = inputValue.trim();
 
 		if (validateMessage(message)) {
-			addMessageToContainer(message);
-			// send message to server here
-			// send message function //
+			const newMessage: IMessage = {
+				content: message,
+				time: getCurrentTime(),
+				fromCurrUser: true
+			};
+			messages.update((m) => [...m, newMessage]);
+
+			sendMessageSocket(newMessage); // send message to server
+
 			inputValue = '';
 		} else {
 			alert('Please enter a message!');

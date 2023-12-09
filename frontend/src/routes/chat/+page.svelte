@@ -1,16 +1,28 @@
 <script lang="ts">
 	import ChatHeader from './ChatHeader.svelte';
 	import ChatInput from './ChatInput.svelte';
-	import ContactsSidebar from './ContactsSidebar.svelte';
+	import ContactsSidebar from './ConvoSidebar.svelte';
 	import MessagesContainer from './MessagesContainer.svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { connectWebSocket, closeWebSocket } from '$lib/websocket';
+
+	let chatName: string = 'Robert';
+
+	onMount(() => {
+		connectWebSocket();
+	});
+
+	onDestroy(() => {
+		closeWebSocket();
+	});
 </script>
 
 <main class="messaging-app">
-	<ContactsSidebar />
+	<ContactsSidebar {chatName} />
 
 	<!-- Actual Chat Area -->
 	<section class="chat-area">
-		<ChatHeader chatName="Robert" />
+		<ChatHeader {chatName} />
 		<MessagesContainer />
 		<ChatInput />
 
