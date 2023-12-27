@@ -42,15 +42,14 @@ async def create_convo(
         )
         members = await new_convo.awaitable_attrs.members
         user_emails: set[str] = set()
-        for user_id in request.user_ids:
-            email = user_id.email
+        for email in request.user_ids:
             if email not in user_emails:
                 user_emails.add(email)
                 user = await crud.user.get_by_email(db=db, email=email)
                 if not user:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"User w/ email {user_id.email} doesn't exist",
+                        detail=f"User w/ email {email} doesn't exist",
                     )
                 members.append(user)
         # note this needs to be here for the group_member table to update
@@ -96,12 +95,12 @@ async def update_convo_users(
     request: schemas.ConversationMemberUpdate,
 ) -> models.Conversation:
     users: set[models.User] = set()
-    for user_id in request.user_ids:
-        user = await crud.user.get_by_email(db=db, email=user_id.email)
+    for user_email in request.user_ids:
+        user = await crud.user.get_by_email(db=db, email=user_email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User w/ email {user_id.email} doesn't exist",
+                detail=f"User w/ email {user_email} doesn't exist",
             )
         users.add(user)
     try:

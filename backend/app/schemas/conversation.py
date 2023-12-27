@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, EmailStr, StringConstraints
 from typing import Annotated, TYPE_CHECKING
 from enum import Enum
-from .responses import UserRequestModel
 
 # if TYPE_CHECKING:
 # from .user import UserRequestModel, UserOut
@@ -17,7 +16,7 @@ class Method(str, Enum):
 
 class ConversationCreate(BaseModel):
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
-    user_ids: list[UserRequestModel]
+    user_ids: list[EmailStr]
 
 
 class ConversationCreateDB(BaseModel):
@@ -33,4 +32,4 @@ class ConversationNameUpdate(BaseModel):
 
 class ConversationMemberUpdate(BaseModel):
     method: Method
-    user_ids: list[UserRequestModel]
+    user_ids: list[EmailStr]

@@ -1,9 +1,14 @@
-from fastapi import APIRouter, HTTPException, status, Response
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, status, Response, Depends
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app import crud, models, schemas, translation
-from app.api.dependencies import DatabaseDep
+from app.api.dependencies import DatabaseDep, verify_current_user_w_cookie
+
+from devtools import debug
 
 router = APIRouter()
 
@@ -12,43 +17,51 @@ router = APIRouter()
 
 
 # this is getting messages to display in the UI, so we know who's messages are who's
-@router.get("/{conversation_id}/{user_id}")
+@router.get("/{conversation_id}", response_model=list[schemas.MessageResponse])
 async def get_messages_sent(
-    db: DatabaseDep, conversation_id: int, user_id: int
-) -> dict[str, list[str]]:
-    chat_history = []
-    convo = await crud.conversation.get(db=db, id=conversation_id)
-    if convo is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Convo w/ id {conversation_id} doesn't exist",
-        )
+    db: DatabaseDep,
+    current_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
+    conversation_id: int,
+) -> list[models.Message]:
+    try:
+        chat_history = []
+        convo = await crud.conversation.get(db=db, id=conversation_id)
+        if convo is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Convo w/ id {conversation_id} doesn't exist",
+            )
 
-    # this is getting the chat history in the sender's language. Either there is a chat history
-    # in their language, or their isn't bc the sender changed their set langauge
-    for message in await convo.awaitable_attrs.messages:
-        if message.sender_id == user_id:
-            chat_history.append(message.original_text)
-        else:
-            translation = (
-                (
-                    await db.execute(
-                        select(models.Translation.translation).filter_by(
-                            message_id=message.id, target_user_id=user_id
+        # this is getting the chat history in the sender's language. Either there is a chat history
+        # in their language, or their isn't bc the sender changed their set langauge
+        for message in await convo.awaitable_attrs.messages:
+            if message.sender_id == current_user.id:
+                chat_history.append(message)
+            else:
+                translation = (
+                    (
+                        await db.execute(
+                            select(models.Translation.translation).filter_by(
+                                message_id=message.id, target_user_id=current_user.id
+                            )
                         )
                     )
+                    .scalars()
+                    .first()
                 )
-                .scalars()
-                .first()
-            )
-            if translation is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"translation w/ message id {message.id} and target user id {user_id} could not be found",
-                )
-            chat_history.append(translation)
+                if translation is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"translation w/ message id {message.id} and target user id {current_user.id} could not be found",
+                    )
+                temp = jsonable_encoder(message)
+                new_temp = {**temp, "original_text": translation}
 
-    return {"history": chat_history}
+                chat_history.append(new_temp)
+
+        return chat_history
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # TODO: I might need to append the user id to each message so I can use that in the front end to display the message left or right
@@ -66,13 +79,13 @@ async def create_message(
         # 3) translate original_text to each desired language
         # 4) Create a corresponding row in the translations table
 
-        message = await crud.message.create(db=db, obj_in=request)
         convo = await crud.conversation.get(db=db, id=request.conversation_id)
         if convo is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Convo w/ id {request.conversation_id} doesn't exist",
             )
+        message = await crud.message.create(db=db, obj_in=request)
 
         # TODO: Implement only grabbing the previous X messages in chat
         chat_history = []
@@ -98,6 +111,7 @@ async def create_message(
                 )
 
                 if text is None:
+                    await db.rollback()
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"translation of {request.original_text} to {member.target_language} for target user {member.id} could not be generated",

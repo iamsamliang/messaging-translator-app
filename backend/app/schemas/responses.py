@@ -1,11 +1,17 @@
 from typing import Annotated
-from pydantic import EmailStr, ConfigDict, BaseModel, StringConstraints
+from pydantic import ConfigDict, BaseModel, StringConstraints
 from datetime import datetime
+from pydantic.functional_serializers import PlainSerializer
 from .user import UserBase
 
 
 class TranslationResponse(BaseModel):
     pass
+
+
+class UserCreateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
 
 
 class UserOut(UserBase):
@@ -17,17 +23,18 @@ class UserOut(UserBase):
 
     # messages_sent: list["MessageResponse"] = []
     # # messages_received: list["MessageOut"] = []
-    # conversations: list["ConversationResponse"] = []
-
-
-class UserRequestModel(BaseModel):
-    email: EmailStr
+    conversations: list["ConversationResponse"] = []
 
 
 class MessageResponse(BaseModel):
     """Output Schema for returning a Message object"""
 
     model_config = ConfigDict(from_attributes=True)
+
+    # class Config:
+    #     json_encoders = {
+    #         datetime: lambda v: v.isoformat() + ("Z" if v.utcoffset() is None else "")
+    #     }
 
     id: int
     conversation_id: int
@@ -37,6 +44,14 @@ class MessageResponse(BaseModel):
     orig_language: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
     ]
+    sent_at: Annotated[
+        datetime,
+        PlainSerializer(
+            lambda v: v.isoformat() + ("Z" if v.utcoffset() is None else ""),
+            return_type=str,
+        ),
+    ]
+    # sent_at: datetime
     # conversation: "ConversationResponse"
     # translations: list["TranslationResponse"]
 
@@ -52,3 +67,6 @@ class ConversationResponse(BaseModel):
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
     # messages: list[MessageResponse] = []
     # members: list[UserOut] = []
+
+
+UserOut.model_rebuild()

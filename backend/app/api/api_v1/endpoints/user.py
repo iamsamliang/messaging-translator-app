@@ -20,7 +20,9 @@ async def get_me(
     return current_user
 
 
-@router.post("", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=schemas.UserCreateOut, status_code=status.HTTP_201_CREATED
+)
 async def create_user(
     db: DatabaseDep,
     user_in: schemas.UserCreate,

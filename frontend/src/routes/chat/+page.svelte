@@ -1,12 +1,13 @@
 <script lang="ts">
 	import ChatHeader from './ChatHeader.svelte';
 	import ChatInput from './ChatInput.svelte';
-	import ContactsSidebar from './ConvoSidebar.svelte';
+	import ConvoSidebar from './ConvoSidebar.svelte';
 	import MessagesContainer from './MessagesContainer.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { connectWebSocket, closeWebSocket } from '$lib/websocket';
+	import { selectedConvo } from '$lib/stores/stores';
 
-	let chatName: string = 'Robert';
+	export let data;
 
 	onMount(() => {
 		connectWebSocket();
@@ -18,16 +19,22 @@
 </script>
 
 <main class="messaging-app">
-	<ContactsSidebar {chatName} />
+	<ConvoSidebar currEmail={data.user.email} convos={data.user.conversations} />
 
 	<!-- Actual Chat Area -->
-	<section class="chat-area">
-		<ChatHeader {chatName} />
-		<MessagesContainer />
-		<ChatInput />
+	{#if $selectedConvo}
+		<section class="chat-area">
+			<ChatHeader />
+			<MessagesContainer currUserID={data.user.id} />
+			<ChatInput
+				senderID={data.user.id}
+				userLang={data.user.target_language}
+				firstName={data.user.first_name}
+				lastName={data.user.last_name}
+			/>
 
-		<!-- Individual Chat Content for Group Chats-->
-		<!-- <div class="message-container">
+			<!-- Individual Chat Content for Group Chats-->
+			<!-- <div class="message-container">
             <div class="message">
                 <div class="message-sender-photo"></div>
                 <div class="message-sender-name"></div>
@@ -35,7 +42,8 @@
                 <div class="message-time"></div>
             </div>
         </div> -->
-	</section>
+		</section>
+	{/if}
 </main>
 
 <style>

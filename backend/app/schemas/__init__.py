@@ -13,7 +13,7 @@ from .token import TokenPayLoad, TokenOut
 
 from .responses import (
     UserOut,
-    UserRequestModel,
+    UserCreateOut,
     MessageResponse,
     ConversationResponse,
     TranslationResponse,

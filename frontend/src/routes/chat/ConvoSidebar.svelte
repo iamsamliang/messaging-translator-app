@@ -1,37 +1,112 @@
 <script lang="ts">
+	import type { ConversationCreate, MessageCreate } from '$lib/interfaces/CreateModels.interface';
 	import Convo from './Convo.svelte';
 	import { fade } from 'svelte/transition';
+	import { selectedConvo } from '$lib/stores/stores';
+	import { messages } from '$lib/stores/stores';
+	import type { IConvo } from '$lib/interfaces/iconvo.interface';
+	import { formatTime } from '$lib/utils';
 
-	let convoNames: string[] = [];
-	let selectedConvo: string;
+	export let currEmail: string;
+	export let convos: IConvo[];
 
 	let showModal: boolean = false;
-	let newChatName: string = '';
+	let peoples: string = '';
 
 	function createChat(): void {
 		showModal = true;
 	}
 
-	function handleCreateChat(): void {
-		const chatName: string = newChatName.trim();
-		if (chatName.length == 0) {
-			alert('Please enter name(s)!');
+	async function populateMessages(convoID: number): Promise<void> {
+		try {
+			const response: Response = await fetch(`http://localhost:8000/messages/${convoID}`, {
+				method: 'GET',
+				credentials: 'include'
+			});
+			if (!response.ok) {
+				const errorResponse = await response.json();
+				console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
+				throw new Error(`Error code: ${response.status}`);
+			}
+
+			const data: MessageCreate[] = await response.json();
+			const updatedMessages = data.map((message: MessageCreate) => ({
+				...message,
+				sent_at: formatTime(message.sent_at)
+			}));
+			messages.set(updatedMessages);
+		} catch (error) {
+			console.error('Error fetching messages:', error);
+			messages.set([]); // Set messages to an empty array in case of error
+		}
+	}
+
+	async function handleCreateChat(): Promise<void> {
+		const chatName: string = peoples.trim();
+		if (chatName.length > 255) {
+			alert('Chat Name is too long');
 			return;
 		}
-		selectedConvo = chatName;
-		convoNames = [chatName, ...convoNames];
+
+		const emails: string[] = chatName.split(',');
+		emails.push(currEmail);
+		console.log(emails);
+
+		const createdChat: ConversationCreate = {
+			conversation_name: chatName,
+			user_ids: emails
+		};
+
+		try {
+			const response: Response = await fetch('http://localhost:8000/conversations', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(createdChat)
+			});
+
+			if (!response.ok) {
+				const errorResponse = await response.json();
+				console.error('Error details:', errorResponse);
+				throw new Error(`Error code: ${response.status}`);
+			}
+
+			const data: any = await response.json();
+			const updaterVal: IConvo = {
+				conversation_name: chatName,
+				id: data.id
+			};
+			selectedConvo.update(() => updaterVal);
+			// selectedConvoID = data.id;
+
+			const newConvo: IConvo = {
+				conversation_name: data.conversation_name,
+				id: data.id
+			};
+
+			convos = [newConvo, ...convos];
+		} catch (error) {
+			console.error('There was a problem with the fetch operation:', error);
+			// Optionally handle the error (e.g., show an error message to the user)
+		}
+
 		showModal = false;
-		newChatName = '';
+		peoples = '';
 	}
 
 	function closeModal(): void {
 		showModal = false;
-		newChatName = '';
+		peoples = '';
 	}
 
-	function handleSubmit(event: Event): void {
-		event.preventDefault();
+	function handleSubmit(): void {
 		handleCreateChat();
+	}
+
+	async function handleClick(convo: IConvo): Promise<void> {
+		selectedConvo.set(convo);
+		await populateMessages(convo.id);
 	}
 </script>
 
@@ -50,14 +125,15 @@
 			<div class="text-lg font-bold">
 				<h1>Create New Chat</h1>
 			</div>
-			<form on:submit={handleSubmit}>
+			<form on:submit|preventDefault={handleSubmit}>
 				<div>
 					<!-- svelte-ignore a11y-autofocus -->
 					<input
 						autofocus
+						required
 						type="text"
-						bind:value={newChatName}
-						placeholder="Enter people names, separated by commas"
+						bind:value={peoples}
+						placeholder="Enter emails, separated by commas"
 						class="w-full"
 					/>
 				</div>
@@ -116,11 +192,12 @@
 
 	<!-- Chat list -->
 	<ul class="p-3">
-		{#each convoNames as convoName}
+		{#each convos as convo}
 			<Convo
-				chatName={convoName}
-				isSelected={selectedConvo === convoName}
-				on:click={() => (selectedConvo = convoName)}
+				id={convo.id.toString()}
+				chatName={convo.conversation_name}
+				isSelected={$selectedConvo?.id === convo.id}
+				on:click={() => handleClick(convo)}
 			/>
 		{/each}
 	</ul>

@@ -1,9 +1,13 @@
 from typing import Any
 from datetime import datetime, timedelta
 
-from jose import jwt
+from jose import jwt, JWTError
+from fastapi import HTTPException, status
+from pydantic import ValidationError
 from passlib.context import CryptContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import schemas, models, crud
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -34,3 +38,30 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def hash_password(plain_password: str) -> str:
     return pwd_context.hash(plain_password)
+
+
+async def verify_token(db: AsyncSession, token: str) -> models.User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+        username = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_payload = schemas.TokenPayLoad(username=username)
+    except (JWTError, ValidationError):
+        raise credentials_exception
+
+    start_idx = token_payload.username.find(":") + 1
+    user = await crud.user.get_by_email(db=db, email=token_payload.username[start_idx:])
+    if not user:
+        raise credentials_exception
+    return user

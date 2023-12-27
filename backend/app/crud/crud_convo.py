@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models import Conversation, User
+from app.models import Conversation, User, group_member_association
 from app.schemas import ConversationCreateDB, ConversationNameUpdate, Method
 from .base import CRUDBase
 
@@ -9,6 +9,8 @@ from .base import CRUDBase
 class CRUDConversation(
     CRUDBase[Conversation, ConversationCreateDB, ConversationNameUpdate]
 ):
+    # async def get_by_userid(self, db: AsyncSession, *, user_id: int) -> list[Conversation]:
+
     async def create(
         self, db: AsyncSession, *, obj_in: ConversationCreateDB
     ) -> Conversation:
@@ -51,6 +53,16 @@ class CRUDConversation(
                     )  # NOTE: need to check if user exists maybe
         # await db.commit()
         return convo
+
+    async def is_user_in_conversation(
+        self, db: AsyncSession, user_id: int, conversation_id: int
+    ) -> bool:
+        query = select(group_member_association).where(
+            group_member_association.c.user_id == user_id,
+            group_member_association.c.conversation_id == conversation_id,
+        )
+        result = await db.execute(query)
+        return result.scalar() is not None
 
 
 conversation = CRUDConversation(Conversation)

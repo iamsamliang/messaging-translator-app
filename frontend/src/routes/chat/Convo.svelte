@@ -3,6 +3,7 @@
 
 	export let chatName: string;
 	export let isSelected: boolean;
+	export let id: string;
 
 	const dispatch: EventDispatcher<any> = createEventDispatcher();
 
@@ -11,18 +12,13 @@
 	}
 </script>
 
-<li class="chat rounded-lg" class:is-selected={isSelected}>
-	<button
-		type="button"
-		on:click={handleClick}
-		class="text-left"
-		aria-label={`Select conversation with ${chatName}`}
-	>
+<li class="chat rounded-lg" class:is-selected={isSelected} {id}>
+	<button type="button" on:click={handleClick} aria-label={`Select conversation with ${chatName}`}>
 		<div class="chat-photo">
 			<img src="/images/profile_photo.png" alt="The user's avatar" />
 		</div>
 		<div class="chat-info">
-			<div class="chat-name">{chatName}</div>
+			<div class="chat-name overflow-hidden text-ellipsis">{chatName}</div>
 			<div class="last-message" class:is-selected-color={isSelected}>Say Hello to Alice</div>
 		</div>
 		<div class="message-info">
@@ -53,6 +49,7 @@
 
 	/* Style the avatar image */
 	.chat-photo {
+		flex: 0 0 auto;
 		height: 100%;
 		border-radius: 50%;
 		/* Circular shape */
@@ -64,9 +61,7 @@
 
 	/* The image inside the avatar div */
 	.chat-photo img {
-		width: auto;
 		height: 100%;
-		min-width: 100%;
 		object-fit: cover;
 	}
 
@@ -76,10 +71,13 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-start;
-		flex-grow: 1;
+		/* flex-grow: 1; */
 		font-size: 1.06rem;
 		gap: 2px;
 		/* Allows the text to take up the available space */
+		flex: 1; /* Start with zero width before growing */
+		min-width: 0;
+		margin-right: 5px;
 	}
 
 	.chat-name {
@@ -95,6 +93,7 @@
 	}
 
 	.message-info {
+		flex: 0 0 auto;
 		display: flex;
 		flex-direction: column;
 		gap: 0.8rem;

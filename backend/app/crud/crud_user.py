@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from pydantic import EmailStr
@@ -12,7 +13,17 @@ from .base import CRUDBase
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_by_email(self, db: AsyncSession, email: EmailStr) -> User | None:
-        return (await db.execute(select(User).filter_by(email=email))).scalars().first()
+        return (
+            (
+                await db.execute(
+                    select(User)
+                    .where(User.email == email)
+                    .options(selectinload(User.conversations))
+                )
+            )
+            .scalars()
+            .first()
+        )
 
     async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
         exists = await db.execute(select(User).filter_by(email=obj_in.email))

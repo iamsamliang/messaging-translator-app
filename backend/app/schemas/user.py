@@ -19,7 +19,7 @@ class UserBase(BaseModel):
     ]
     profile_photo: Annotated[
         str, StringConstraints(strip_whitespace=True, max_length=255)
-    ]
+    ] = "test"
     email: EmailStr
     target_language: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)

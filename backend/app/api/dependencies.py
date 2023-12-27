@@ -1,14 +1,12 @@
 from typing import Annotated, AsyncGenerator
+import logging
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
-from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import crud, models, schemas
-from app.core import security
-from app.core.config import settings
+from app import models
+from app.core.security import verify_token
 from ..database import AsyncSessionLocal
 
 # tokenURL is used for documentation. Tells client where to get an access token
@@ -21,6 +19,9 @@ reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"login/access-token")
 #     finally:
 #         await db.close()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as db:
@@ -31,27 +32,14 @@ async def verify_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     token: Annotated[str, Depends(reusable_oauth2)],
 ) -> models.User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    return await verify_token(db=db, token=token)
 
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
-        )
-        username = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_payload = schemas.TokenPayLoad(username=username)
-    except (JWTError, ValidationError):
-        raise credentials_exception
 
-    user = await crud.user.get_by_email(db=db, email=token_payload.username)
-    if not user:
-        raise credentials_exception
-    return user
+async def verify_current_user_w_cookie(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    jwt: Annotated[str, Cookie()],
+) -> models.User:
+    return await verify_token(db=db, token=jwt)
 
 
 async def verify_current_admin(

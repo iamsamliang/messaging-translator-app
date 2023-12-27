@@ -13,8 +13,7 @@ router = APIRouter()
 
 
 # Login
-# TODO: Test this endpoint
-@router.post("/login/access-token", response_model=schemas.TokenOut)
+@router.post("/access-token", response_model=schemas.TokenOut)
 async def login_for_token(
     db: DatabaseDep,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],

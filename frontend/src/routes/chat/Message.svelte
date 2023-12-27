@@ -1,10 +1,11 @@
 <script lang="ts">
 	export let content: string;
 	export let time: string;
-	export let fromCurrUser: boolean;
+	export let senderID: number;
+	export let currUserID: number;
 </script>
 
-<div class="message" class:from-curr-user={fromCurrUser}>
+<div class="message" class:from-curr-user={senderID === currUserID}>
 	<div class="message-content">{content}</div>
 	<div class="message-time">{time}</div>
 </div>

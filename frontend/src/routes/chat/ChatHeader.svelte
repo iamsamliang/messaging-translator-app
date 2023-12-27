@@ -1,18 +1,21 @@
 <script lang="ts">
 	// get the chat photo from the backend
-	export let chatName: string;
+
+	import { selectedConvo } from '$lib/stores/stores';
 </script>
 
 <!-- Individual Chat Header -->
-<header class="chat-header">
-	<div class="chat-photo-name-container">
-		<div class="chat-photo">
-			<img src="/images/profile_photo.png" alt="The user's avatar" />
+{#if $selectedConvo}
+	<header class="chat-header">
+		<div class="chat-photo-name-container">
+			<div class="chat-photo">
+				<img src="/images/profile_photo.png" alt="The user's avatar" />
+			</div>
+			<div class="chat-name">{$selectedConvo.conversation_name}</div>
 		</div>
-		<div class="chat-name">{chatName}</div>
-	</div>
-	<div class="chat-options"></div>
-</header>
+		<div class="chat-options"></div>
+	</header>
+{/if}
 
 <style>
 	.chat-header {
@@ -54,9 +57,5 @@
 
 	.chat-name {
 		font-weight: bold;
-	}
-
-	.chat-options {
-		/* Placeholder for chat options like search or menu */
 	}
 </style>
