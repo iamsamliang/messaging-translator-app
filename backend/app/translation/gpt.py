@@ -14,7 +14,7 @@ async def translate(
     PROMPT_MSGS = [
         {
             "role": "system",
-            "content": "Your job is to translate messages that users text to each other. You're given the chat history as context to help translating and who sent the newest message. Only return the translation of that message",
+            "content": "Your job is to translate messages that users text to each other. You're given the chat history as context and the sender of the newest message. Only return the translation of that message",
         },
     ]
 
@@ -28,7 +28,9 @@ async def translate(
         {
             "role": "user",
             "name": f"User_{sender_id}",
-            "content": f"User {sender_id} sent '{text_input}'. Translate it to {target_language}.",
+            "content": f"""Translate the following text sent by user {sender_id} into {target_language}. Ensure the punctuation remains EXACTLY the SAME as in the ORIGINAL TEXT. DO NOT ADD EXTRA QUOTES to the translation if there were no quotes in the original input.
+            
+            {text_input}""",
         }
     )
 
@@ -38,6 +40,8 @@ async def translate(
     # prompt += (
     #     f"\nUser {sender_id} sent '{text_input}'. Translate it to {target_language}.\n"
     # )
+
+    print(f"In GPT Translation Function. This is the prompt: {PROMPT_MSGS}")
 
     response = openai.chat.completions.create(
         model="gpt-4",

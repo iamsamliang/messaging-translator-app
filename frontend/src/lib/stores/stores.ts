@@ -10,3 +10,5 @@ export const messages = writable<MessageCreate[]>([]);
 // };
 
 export const selectedConvo = writable<IConvo | null>(null);
+
+export const currUserID = writable<number>(-1);

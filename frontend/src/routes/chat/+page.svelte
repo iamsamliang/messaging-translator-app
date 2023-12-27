@@ -5,11 +5,12 @@
 	import MessagesContainer from './MessagesContainer.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { connectWebSocket, closeWebSocket } from '$lib/websocket';
-	import { selectedConvo } from '$lib/stores/stores';
+	import { currUserID, selectedConvo } from '$lib/stores/stores';
 
 	export let data;
 
 	onMount(() => {
+		currUserID.set(data.user.id);
 		connectWebSocket();
 	});
 

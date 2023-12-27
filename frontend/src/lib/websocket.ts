@@ -1,12 +1,16 @@
 import type { MessageCreate } from "./interfaces/CreateModels.interface";
 import type { IConvo } from "./interfaces/iconvo.interface";
 import { messages } from "./stores/stores";
-import { selectedConvo } from "./stores/stores";
+import { selectedConvo, currUserID } from "./stores/stores";
 import { formatTime } from "./utils";
 
 // src/lib/websocket.js
 let socket: WebSocket;
 let currConvo: IConvo | null = null;
+let userID: number = -1;
+const userid_unsubscribe = currUserID.subscribe(value => {
+    userID = value;
+});
 const unsubscribe = selectedConvo.subscribe(value => {
     currConvo = value;
 });
@@ -23,8 +27,8 @@ export function connectWebSocket() {
             socket.onopen = () => console.log("WebSocket is open now.");
             socket.onmessage = (event) => {
                 const receivedMessage: MessageCreate = JSON.parse(event.data);
-                receivedMessage.sent_at = formatTime(receivedMessage.sent_at);
-                if (receivedMessage.conversation_id === currConvo?.id) {
+                if (receivedMessage.conversation_id === currConvo?.id && receivedMessage.sender_id !== userID) {
+                    receivedMessage.sent_at = formatTime(receivedMessage.sent_at);
                     messages.update(m => [...m, receivedMessage]);
                 }
             };
@@ -48,6 +52,7 @@ export function sendMessageSocket(message: MessageCreate) {
 
 export function closeWebSocket() {
     unsubscribe();
+    userid_unsubscribe();
     if (socket) {
         socket.close();
     }

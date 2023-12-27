@@ -23,7 +23,7 @@
 		</div>
 		<div class="message-info">
 			<div class="last-message-time" class:is-selected-color={isSelected}>18:23</div>
-			<div class="unread-indicator">2</div>
+			<div class="unread-indicator"></div>
 		</div>
 	</button>
 </li>
@@ -116,20 +116,16 @@
 		/* Circular shape */
 		/* padding: 5px; */
 		/* Padding inside the indicator */
-		font-size: 1rem;
-		/* Smaller font size */
 		display: flex;
 		/* To center the content */
 		align-items: center;
 		/* Center content vertically */
 		justify-content: center;
 		/* Center content horizontally */
-		width: 1.4rem;
+		width: 0.6rem;
 		/* Fixed width */
-		height: 1.4rem;
+		height: 0.6rem;
 		/* Fixed height */
-		min-width: 1.4rem;
-		/* Ensure it doesn't shrink smaller than content */
 	}
 
 	.is-selected {

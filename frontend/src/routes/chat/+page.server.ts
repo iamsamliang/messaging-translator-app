@@ -17,8 +17,6 @@ export async function load({ cookies }) {
     
     const user = await response.json();
 
-    console.log(user);
-
     return {
         user
     };
