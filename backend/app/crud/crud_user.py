@@ -4,16 +4,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from pydantic import EmailStr
 
-from app.models import User, Conversation
+from app.models import User, Conversation, Translation
 from app.schemas.user import UserCreate, UserUpdate
 from app.exceptions import UserAlreadyExistsException
 from app.core import security
 from .base import CRUDBase
 
+from devtools import debug
+
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_by_email(self, db: AsyncSession, email: EmailStr) -> User | None:
-        return (
+        user = (
             (
                 await db.execute(
                     select(User)
@@ -28,6 +30,35 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             .scalars()
             .first()
         )
+
+        latest_message_ids = [
+            conversation.latest_message.id for conversation in user.conversations
+        ]
+
+        # Assuming `user.target_language` holds the desired language of the user
+        relevant_translations = await db.execute(
+            select(Translation.message_id, Translation.translation).where(
+                Translation.message_id.in_(latest_message_ids),
+                Translation.language == user.target_language,
+            )
+        )
+
+        relevant_translations = relevant_translations.all()
+
+        translation_map = {
+            trans.message_id: trans.translation for trans in relevant_translations
+        }
+
+        for conversation in user.conversations:
+            setattr(
+                conversation.latest_message,
+                "relevant_translation",
+                translation_map.get(
+                    conversation.latest_message.id,
+                ),
+            )
+
+        return user
 
     async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
         exists = await db.execute(select(User).filter_by(email=obj_in.email))

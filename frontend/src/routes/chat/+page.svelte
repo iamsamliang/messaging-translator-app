@@ -14,7 +14,7 @@
 	latestMessages.set(
 		data.user.conversations.reduce((acc: Record<number, LatestMessageInfo>, conversation: any) => {
 			acc[conversation.id] = {
-				text: conversation.latest_message.original_text,
+				text: conversation.latest_message.relevant_translation,
 				time: formatTime(conversation.latest_message.sent_at)
 			};
 			return acc;

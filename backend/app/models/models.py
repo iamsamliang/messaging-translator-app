@@ -60,9 +60,9 @@ class User(Base):
     # w/o back_populates unidirectional relationship. From user, can access messages obj
     # But from a message, can't directly get the user obj
     messages_sent: Mapped[List["Message"]] = relationship()
-    messages_received: Mapped[List["Translation"]] = relationship(
-        back_populates="user",
-    )
+    # messages_received: Mapped[List["Translation"]] = relationship(
+    #     back_populates="user",
+    # )
     conversations: Mapped[List["Conversation"]] = relationship(
         secondary=group_member_association, back_populates="members"
     )
@@ -108,7 +108,7 @@ class Translation(Base):
     message_id: Mapped[int] = mapped_column(ForeignKey("messages.id"))
 
     message: Mapped[Message] = relationship(back_populates="translations")
-    user: Mapped[User] = relationship(back_populates="messages_received")
+    # user: Mapped[User] = relationship(back_populates="messages_received")
 
 
 class Conversation(Base):

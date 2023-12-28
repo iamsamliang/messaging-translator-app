@@ -16,7 +16,6 @@ export async function load({ cookies }) {
     if (!response.ok) throw redirect(302, "/login");
     
     const user = await response.json();
-    // console.log(user.conversations);
 
     return {
         user

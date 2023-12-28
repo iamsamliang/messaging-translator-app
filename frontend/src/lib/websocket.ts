@@ -28,7 +28,7 @@ export function connectWebSocket() {
 
             socket.onerror = (error) => {
                 console.error(`WebSocket error: ${error}`);
-            };
+            }
             socket.onopen = () => console.log("WebSocket is open now.");
             socket.onmessage = (event) => {
                 const receivedMessage: MessageCreate = JSON.parse(event.data);
@@ -47,7 +47,7 @@ export function connectWebSocket() {
                         return messages;
                     });
                 }
-            };
+            }
             socket.onclose = () => {
                 unsubscribe_all();
                 console.log("WebSocket closed.");

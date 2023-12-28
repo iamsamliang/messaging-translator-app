@@ -128,6 +128,18 @@ async def create_message(
                     ),
                 )
                 (await message.awaitable_attrs.translations).append(new_translation)
+            else:
+                # just add the same message as a translation
+                new_translation = await crud.translation.create(
+                    db=db,
+                    obj_in=schemas.TranslationCreate(
+                        translation=request.original_text,
+                        language=member.target_language,
+                        target_user_id=member.id,
+                        message_id=message.id,
+                    ),
+                )
+                (await message.awaitable_attrs.translations).append(new_translation)
 
         await db.commit()
         response.headers[

@@ -31,11 +31,6 @@ class MessageResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    # class Config:
-    #     json_encoders = {
-    #         datetime: lambda v: v.isoformat() + ("Z" if v.utcoffset() is None else "")
-    #     }
-
     id: int
     conversation_id: int
     sender_id: int
@@ -56,6 +51,22 @@ class MessageResponse(BaseModel):
     # translations: list["TranslationResponse"]
 
 
+class LatestMessageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    conversation_id: int
+    sender_id: int
+    sent_at: Annotated[
+        datetime,
+        PlainSerializer(
+            lambda v: v.isoformat() + ("Z" if v.utcoffset() is None else ""),
+            return_type=str,
+        ),
+    ]
+    relevant_translation: str
+
+
 class ConversationResponse(BaseModel):
     """Output Schema for any function returning Conversation object"""
 
@@ -65,7 +76,7 @@ class ConversationResponse(BaseModel):
 
     # need forward references for type hints to avoid NameErrors and help circular importd
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
-    latest_message: MessageResponse
+    latest_message: LatestMessageResponse
     # messages: list[MessageResponse] = []
     # members: list[UserOut] = []
 
