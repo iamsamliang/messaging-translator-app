@@ -41,7 +41,7 @@ async def translate(
     #     f"\nUser {sender_id} sent '{text_input}'. Translate it to {target_language}.\n"
     # )
 
-    print(f"In GPT Translation Function. This is the prompt: {PROMPT_MSGS}")
+    # print(f"In GPT Translation Function. This is the prompt: {PROMPT_MSGS}")
 
     response = openai.chat.completions.create(
         model="gpt-4",

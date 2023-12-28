@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { getCurrentTime } from '$lib/utils';
 	import { sendMessageSocket } from '$lib/websocket';
-	import { messages, selectedConvo } from '$lib/stores/stores';
+	import { latestMessages, messages, selectedConvo } from '$lib/stores/stores';
 	import type { MessageCreate } from '$lib/interfaces/CreateModels.interface';
+	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
 
 	let inputValue: string = '';
 	export let senderID: number;
@@ -31,6 +32,17 @@
 				last_name: lastName
 			};
 			messages.update((m) => [...m, newMessage]);
+
+			// update UI for the Conversation block in the Conversation lists. Need this otherwise too slow to update for
+			// sender using websocket.onmessage
+			const newMessageInfo: LatestMessageInfo = {
+				text: message,
+				time: newMessage.sent_at // Format this time as needed
+			};
+			latestMessages.update((messages) => {
+				messages[newMessage.conversation_id] = newMessageInfo;
+				return messages;
+			});
 
 			sendMessageSocket(newMessage); // send message to server
 

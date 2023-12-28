@@ -65,6 +65,7 @@ class ConversationResponse(BaseModel):
 
     # need forward references for type hints to avoid NameErrors and help circular importd
     conversation_name: Annotated[str, StringConstraints(max_length=255)]
+    latest_message: MessageResponse
     # messages: list[MessageResponse] = []
     # members: list[UserOut] = []
 

@@ -5,12 +5,24 @@
 	import MessagesContainer from './MessagesContainer.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { connectWebSocket, closeWebSocket } from '$lib/websocket';
-	import { currUserID, selectedConvo } from '$lib/stores/stores';
+	import { currUserID, selectedConvo, latestMessages } from '$lib/stores/stores';
+	import { formatTime } from '$lib/utils';
+	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
 
 	export let data;
 
+	latestMessages.set(
+		data.user.conversations.reduce((acc: Record<number, LatestMessageInfo>, conversation: any) => {
+			acc[conversation.id] = {
+				text: conversation.latest_message.original_text,
+				time: formatTime(conversation.latest_message.sent_at)
+			};
+			return acc;
+		}, {})
+	);
+	currUserID.set(data.user.id);
+
 	onMount(() => {
-		currUserID.set(data.user.id);
 		connectWebSocket();
 	});
 

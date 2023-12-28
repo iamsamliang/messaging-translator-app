@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { latestMessages } from '$lib/stores/stores';
 	import { createEventDispatcher, type EventDispatcher } from 'svelte';
 
 	export let chatName: string;
 	export let isSelected: boolean;
-	export let id: string;
+	export let convoID: number;
 
 	const dispatch: EventDispatcher<any> = createEventDispatcher();
 
@@ -12,17 +13,21 @@
 	}
 </script>
 
-<li class="chat rounded-lg" class:is-selected={isSelected} {id}>
+<li class="chat rounded-lg" class:is-selected={isSelected} id={convoID.toString()}>
 	<button type="button" on:click={handleClick} aria-label={`Select conversation with ${chatName}`}>
 		<div class="chat-photo">
 			<img src="/images/profile_photo.png" alt="The user's avatar" />
 		</div>
 		<div class="chat-info">
 			<div class="chat-name overflow-hidden text-ellipsis">{chatName}</div>
-			<div class="last-message" class:is-selected-color={isSelected}>Say Hello to Alice</div>
+			<div class="last-message" class:is-selected-color={isSelected}>
+				{$latestMessages[convoID].text}
+			</div>
 		</div>
 		<div class="message-info">
-			<div class="last-message-time" class:is-selected-color={isSelected}>18:23</div>
+			<div class="last-message-time" class:is-selected-color={isSelected}>
+				{$latestMessages[convoID].time}
+			</div>
 			<div class="unread-indicator"></div>
 		</div>
 	</button>

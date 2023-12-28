@@ -2,8 +2,7 @@
 	import type { ConversationCreate, MessageCreate } from '$lib/interfaces/CreateModels.interface';
 	import Convo from './Convo.svelte';
 	import { fade } from 'svelte/transition';
-	import { selectedConvo } from '$lib/stores/stores';
-	import { messages } from '$lib/stores/stores';
+	import { selectedConvo, latestMessages, messages } from '$lib/stores/stores';
 	import type { IConvo } from '$lib/interfaces/iconvo.interface';
 	import { formatTime } from '$lib/utils';
 
@@ -35,6 +34,12 @@
 				sent_at: formatTime(message.sent_at)
 			}));
 			messages.set(updatedMessages);
+
+			// get rid of new notifications indicator for this selected group chat
+			// latestMessages.update((unreads) => {
+			// 	delete unreads[convoID];
+			// 	return unreads;
+			// });
 		} catch (error) {
 			console.error('Error fetching messages:', error);
 			messages.set([]); // Set messages to an empty array in case of error
@@ -194,7 +199,7 @@
 	<ul class="p-3">
 		{#each convos as convo}
 			<Convo
-				id={convo.id.toString()}
+				convoID={convo.id}
 				chatName={convo.conversation_name}
 				isSelected={$selectedConvo?.id === convo.id}
 				on:click={() => handleClick(convo)}

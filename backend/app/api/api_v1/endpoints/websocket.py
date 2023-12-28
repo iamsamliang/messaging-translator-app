@@ -2,7 +2,6 @@ import json
 import asyncio
 import logging
 from typing import Annotated
-from app.schemas.message import MessageCreate
 
 from redis.asyncio import Redis
 from redis.asyncio.client import PubSub
@@ -74,6 +73,11 @@ async def create_message_ws(
 
         (await convo.awaitable_attrs.messages).append(message)
         await db.flush()
+
+        # await crud.conversation.update_latest_msg(
+        #     db=db, convo_id=convo.id, new_latest_msg_id=message.id
+        # )
+        convo.latest_message_id = message.id
 
         for member in await convo.awaitable_attrs.members:
             if member.id != obj_in.sender_id:
@@ -163,7 +167,7 @@ async def websocket_endpoint(
                     #     str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
                     # ]
 
-                    obj_in = MessageCreate(
+                    obj_in = schemas.MessageCreate(
                         conversation_id=message["conversation_id"],
                         sender_id=message["sender_id"],
                         orig_language=message["orig_language"],

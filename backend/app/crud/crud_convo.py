@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.models import Conversation, User, group_member_association
 from app.schemas import ConversationCreateDB, ConversationNameUpdate, Method
@@ -53,6 +53,16 @@ class CRUDConversation(
                     )  # NOTE: need to check if user exists maybe
         # await db.commit()
         return convo
+
+    # async def update_latest_msg(
+    #     self, db: AsyncSession, *, convo_id: int, new_latest_msg_id: int
+    # ) -> int:
+    #     result = await db.execute(
+    #         update(Conversation)
+    #         .where(Conversation.id == convo_id)
+    #         .values(latest_message_id=new_latest_msg_id)
+    #     )
+    #     return result.rowcount
 
     async def is_user_in_conversation(
         self, db: AsyncSession, user_id: int, conversation_id: int

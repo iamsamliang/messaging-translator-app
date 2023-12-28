@@ -92,7 +92,10 @@ class Message(Base):
     )  # index this for faster queries
     received_at: Mapped[datetime] = mapped_column(nullable=True)
 
-    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+    conversation: Mapped["Conversation"] = relationship(
+        back_populates="messages",
+        foreign_keys=[conversation_id],
+    )
     translations: Mapped[List["Translation"]] = relationship(back_populates="message")
 
 
@@ -117,9 +120,21 @@ class Conversation(Base):
     __tablename__ = "conversations"
     id: Mapped[int] = mapped_column(primary_key=True)
     conversation_name: Mapped[str] = mapped_column(String(255))
+    conversation_photo: Mapped[Optional[str]] = mapped_column(String(255))
+    # Add a foreign key column for the latest message
+    latest_message_id: Mapped[int] = mapped_column(
+        ForeignKey("messages.id"), nullable=True
+    )
+
+    # Define the relationship
+    latest_message: Mapped[Optional[Message]] = relationship(
+        "Message", foreign_keys=[latest_message_id]
+    )
 
     # Relationships
-    messages: Mapped[List[Message]] = relationship(back_populates="conversation")
+    messages: Mapped[List[Message]] = relationship(
+        back_populates="conversation", foreign_keys="[Message.conversation_id]"
+    )
     members: Mapped[List[User]] = relationship(
         secondary=group_member_association, back_populates="conversations"
     )

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from pydantic import EmailStr
 
-from app.models import User
+from app.models import User, Conversation
 from app.schemas.user import UserCreate, UserUpdate
 from app.exceptions import UserAlreadyExistsException
 from app.core import security
@@ -18,7 +18,11 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
                 await db.execute(
                     select(User)
                     .where(User.email == email)
-                    .options(selectinload(User.conversations))
+                    .options(
+                        selectinload(User.conversations).joinedload(
+                            Conversation.latest_message
+                        )
+                    )
                 )
             )
             .scalars()

@@ -119,6 +119,26 @@ async def update_convo_users(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+# @router.patch("/{convo_id}/update-message")
+# async def update_convo_latest_msg(
+#     db: DatabaseDep, convo_id: int, request: schemas.ConversationMessageUpdate
+# ) -> None:
+#     try:
+#         rows_updated = await crud.conversation.update_latest_msg(
+#             db=db, convo_id=convo_id, new_latest_msg_id=request.new_latest_msg_id
+#         )
+
+#         if rows_updated == 0:
+#             raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail=f"Conversation w/ id {convo_id} doesn't exist",
+#             )
+#         await db.commit()
+#     except IntegrityError as e:
+#         await db.rollback()
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 @router.delete(
     "/{convo_id}",
     status_code=status.HTTP_204_NO_CONTENT,
