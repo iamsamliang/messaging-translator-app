@@ -13,24 +13,42 @@
 	}
 </script>
 
-<li class="chat rounded-lg" class:is-selected={isSelected} id={convoID.toString()}>
-	<button type="button" on:click={handleClick} aria-label={`Select conversation with ${chatName}`}>
-		<div class="chat-photo">
-			<img src="/images/profile_photo.png" alt="The user's avatar" />
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+<li
+	class="chat hover:bg-gray-300 cursor-pointer rounded-lg"
+	class:is-selected={isSelected}
+	id={convoID.toString()}
+	on:click={handleClick}
+	aria-label={`Select conversation with ${chatName}`}
+>
+	<div
+		class="flex-grow-0 flex-shrink-0 basis-auto h-[75%] rounded-[50%] overflow-hidden md:mr-[10px]"
+	>
+		<img src="/images/profile_photo.png" alt="The user's avatar" class="h-full object-cover" />
+	</div>
+	<div
+		class="h-full flex-col justify-start text-[1.06rem] gap-[2px] flex-1 min-w-0 mr-[5px] hidden md:flex"
+	>
+		<div class="text-base font-semibold overflow-hidden text-ellipsis">
+			{chatName}
 		</div>
-		<div class="chat-info">
-			<div class="chat-name overflow-hidden text-ellipsis">{chatName}</div>
-			<div class="last-message" class:is-selected-color={isSelected}>
-				{$latestMessages[convoID].text}
-			</div>
+
+		<div
+			class="text-[0.9rem] text-gray-600 overflow-hidden text-ellipsis truncate"
+			class:is-selected-color={isSelected}
+		>
+			{$latestMessages[convoID].text}
 		</div>
-		<div class="message-info">
-			<div class="last-message-time" class:is-selected-color={isSelected}>
-				{$latestMessages[convoID].time}
-			</div>
-			<div class="unread-indicator"></div>
+	</div>
+	<div
+		class="flex-grow-0 flex-shrink-0 basis-auto flex-col gap-[0.8rem] items-end h-full hidden md:flex"
+	>
+		<div class="text-gray-600 text-[0.9rem]" class:is-selected-color={isSelected}>
+			{$latestMessages[convoID].time}
 		</div>
-	</button>
+		<div class="unread-indicator"></div>
+	</div>
 </li>
 
 <style>
@@ -39,76 +57,9 @@
 		display: flex;
 		align-items: center;
 		padding: 0.5rem 1rem;
-		border-bottom: 1px solid #ccc;
+		border-bottom: 1px solid none;
 		height: 80px;
 		/* Separator between chats */
-	}
-
-	.chat button {
-		all: unset;
-		display: flex;
-		align-items: center;
-		height: 100%;
-		width: 100%;
-	}
-
-	/* Style the avatar image */
-	.chat-photo {
-		flex: 0 0 auto;
-		height: 100%;
-		border-radius: 50%;
-		/* Circular shape */
-		overflow: hidden;
-		/* Ensures the image doesn't overflow the circular shape */
-		margin-right: 10px;
-		/* Space between avatar and text */
-	}
-
-	/* The image inside the avatar div */
-	.chat-photo img {
-		height: 100%;
-		object-fit: cover;
-	}
-
-	/* Style the chat's name and last message */
-	.chat-info {
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-start;
-		/* flex-grow: 1; */
-		font-size: 1.06rem;
-		gap: 2px;
-		/* Allows the text to take up the available space */
-		flex: 1; /* Start with zero width before growing */
-		min-width: 0;
-		margin-right: 5px;
-	}
-
-	.chat-name {
-		font-weight: bold;
-		/* Make the name stand out */
-	}
-
-	.last-message {
-		color: #666;
-		/* A lighter color for the last message */
-		font-size: 0.9em;
-		/* A smaller font size */
-	}
-
-	.message-info {
-		flex: 0 0 auto;
-		display: flex;
-		flex-direction: column;
-		gap: 0.8rem;
-		align-items: flex-end;
-		height: 100%;
-	}
-
-	/* Style the timestamp */
-	.last-message-time {
-		color: #666;
 	}
 
 	/* Unread message indicator */

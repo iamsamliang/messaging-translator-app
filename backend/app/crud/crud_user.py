@@ -10,8 +10,6 @@ from app.exceptions import UserAlreadyExistsException
 from app.core import security
 from .base import CRUDBase
 
-from devtools import debug
-
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_by_email(self, db: AsyncSession, email: EmailStr) -> User | None:

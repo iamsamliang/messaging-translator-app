@@ -56,9 +56,19 @@
 <!-- Individual Chat Footer for Sending Message -->
 {#if $selectedConvo}
 	<footer>
-		<form class="message-input-area" on:submit|preventDefault={sendMessage}>
-			<input bind:value={inputValue} type="text" placeholder="Write a message..." />
-			<button type="submit" class="send-message">Send</button>
+		<form
+			class="flex p-[10px] bg-white border-t border-solid border-gray-200"
+			on:submit|preventDefault={sendMessage}
+		>
+			<input
+				bind:value={inputValue}
+				type="text"
+				placeholder="Write a message..."
+				class="flex-grow border-solid border border-blue-300 rounded-3xl py-[5px] px-[10px] mr-[10px] focus:outline-none"
+			/>
+			<button type="submit" class="send-message" disabled={inputValue.trim().length === 0}
+				>Send</button
+			>
 		</form>
 	</footer>
 {/if}
@@ -66,21 +76,6 @@
 <style>
 	button:hover {
 		opacity: 0.9; /* Slightly transparent on hover */
-	}
-
-	.message-input-area {
-		display: flex;
-		padding: 10px;
-		background-color: #f7f7f7;
-		border-top: 1px solid #ccc;
-	}
-
-	.message-input-area input[type='text'] {
-		flex-grow: 1;
-		border: 1px solid #ccc;
-		border-radius: 18px;
-		padding: 5px 10px;
-		margin-right: 10px;
 	}
 
 	.send-message {

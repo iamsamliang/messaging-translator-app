@@ -36,7 +36,7 @@
 
 	<!-- Actual Chat Area -->
 	{#if $selectedConvo}
-		<section class="chat-area">
+		<section class="chat-area w-full max-w-full min-w-0">
 			<ChatHeader />
 			<MessagesContainer currUserID={data.user.id} />
 			<ChatInput
@@ -70,7 +70,6 @@
 	.chat-area {
 		display: flex;
 		flex-direction: column;
-		width: 75%;
 		/* Set a fixed width for the chat area or adjust as needed */
 		height: 100vh;
 		border-left: 1px solid #ccc;

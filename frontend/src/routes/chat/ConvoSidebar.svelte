@@ -161,16 +161,19 @@
 {/if}
 
 <!-- Sidebar for chats -->
-<aside class="chats-sidebar">
+<aside class="chats-sidebar min-w-fit md:min-w-[400px] max-w-[400px]">
 	<!-- Sidebar Header -->
 	<header class="chats-sidebar-header">
-		<!-- Search bar -->
-		<div class="chats-search-bar">
-			<input type="text" placeholder="Search..." />
+		<div class="pl-4 w-[80%] h-[36px] hidden md:flex">
+			<input
+				type="text"
+				placeholder="Search..."
+				class="w-full p-2 rounded-md border-solid border-blue-500 border focus:outline-none"
+			/>
 		</div>
 
 		<!-- Create new chat button -->
-		<div class="create-chat-btn-container">
+		<div class="flex justify-center w-full md:w-[20%] md:h-[36px]">
 			<button
 				class="place-content-center text-blue-400"
 				aria-label="New chat"
@@ -211,8 +214,8 @@
 <style>
 	/* Set up the sidebar with a background color, text color, and padding */
 	.chats-sidebar {
-		width: 25%;
 		border-right: 1px solid #ccc;
+		/* min-width: 25%; */
 	}
 
 	/* Style the sidebar header to display its children inline */
@@ -226,40 +229,6 @@
 
 		padding-top: 1rem;
 		padding-bottom: 0.2rem;
-	}
-
-	/* Style the search container for the input and search button */
-	.chats-search-bar {
-		display: flex;
-		/* Align the search input and button inline */
-		padding-left: 1rem;
-		width: 80%;
-		/* Allow the search container to fill the space */
-	}
-
-	/* Style the search input field */
-	.chats-search-bar input[type='text'] {
-		width: 100%;
-		/* Full width of the container */
-		padding: 0.5rem;
-		/* Padding inside the input field */
-		border: 1px solid #333;
-		/* Border to make it stand out */
-		border-radius: 4px;
-		/* Rounded corners */
-	}
-
-	.create-chat-btn-container {
-		display: flex;
-		justify-content: center;
-		/* Aligns the button to the right */
-		width: 20%;
-		/* Takes the full width of its parent */
-	}
-
-	.chats-search-bar,
-	.create-chat-btn-container {
-		height: 36px;
 	}
 
 	/* Add a hover effect for buttons */

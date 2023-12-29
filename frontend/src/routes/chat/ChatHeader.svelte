@@ -6,27 +6,22 @@
 
 <!-- Individual Chat Header -->
 {#if $selectedConvo}
-	<header class="chat-header">
-		<div class="chat-photo-name-container">
+	<header
+		class="flex items-center justify-between p-[10px] bg-white border-b border-solid border-gray-200"
+	>
+		<div class="chat-photo-name-container w-full">
 			<div class="chat-photo">
 				<img src="/images/profile_photo.png" alt="The user's avatar" />
 			</div>
-			<div class="chat-name">{$selectedConvo.conversation_name}</div>
+			<div class="chat-name overflow-hidden">
+				{$selectedConvo.conversation_name}
+			</div>
 		</div>
 		<div class="chat-options"></div>
 	</header>
 {/if}
 
 <style>
-	.chat-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 10px;
-		background-color: #f7f7f7;
-		border-bottom: 1px solid #ccc;
-	}
-
 	.chat-photo-name-container {
 		display: flex;
 		align-items: center;
@@ -35,6 +30,7 @@
 	.chat-photo {
 		width: 40px;
 		height: 40px;
+		min-width: 40px;
 		border-radius: 50%;
 		overflow: hidden;
 		display: flex;
