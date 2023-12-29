@@ -2,6 +2,7 @@ import json
 import asyncio
 import logging
 from typing import Annotated
+from fastapi.websockets import WebSocketState
 
 from redis.asyncio import Redis
 from redis.asyncio.client import PubSub
@@ -20,7 +21,6 @@ from fastapi import (
     WebSocketException,
     status,
 )
-from devtools import debug
 
 router = APIRouter()
 
@@ -159,26 +159,6 @@ async def websocket_endpoint(
                             reason="User is not authorized to send messages to this chat",
                         )
 
-                    # TODO: store message in database
-                    # Data Coming IN:
-                    # const newMessage: MessageCreate = {
-                    # 	original_text: message,
-                    # 	sender_id: senderID,
-                    # 	conversation_id: $selectedConvo.id,
-                    # 	orig_language: userLang,
-                    # 	sent_at: getCurrentTime(),
-                    # 	first_name: firstName,
-                    # 	last_name: lastName
-                    # };
-
-                    # class MessageCreate(BaseModel):
-                    # conversation_id: int
-                    # sender_id: int
-                    # original_text: str
-                    # orig_language: Annotated[
-                    #     str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-                    # ]
-
                     obj_in = schemas.MessageCreate(
                         conversation_id=message["conversation_id"],
                         sender_id=message["sender_id"],
@@ -188,7 +168,6 @@ async def websocket_endpoint(
                     # translations = list of sent message in translated languages
                     new_message = await create_message_ws(db=db, obj_in=obj_in)
 
-                # debug(new_message)
                 # first publish to the sender's language channel
                 formatted_sent_at = new_message.sent_at.isoformat() + (
                     "Z" if new_message.sent_at.utcoffset() is None else ""
@@ -213,14 +192,16 @@ async def websocket_endpoint(
                     )
 
                 # await manager.broadcast(data, websocket, chat_id)
-        except WebSocketDisconnect:
-            # manager.disconnect(websocket)
-            await websocket.close()
         finally:
             # Cancel and await the listener task to ensure clean shutdown
-            await pubsub.unsubscribe()
             future.cancel()
             try:
                 await future
             except asyncio.CancelledError:
                 pass
+
+            # Close the websocket if it's not already closed.
+            if not websocket.client_state == WebSocketState.DISCONNECTED:
+                await websocket.close(code=1000, reason="Server Shutdown")
+
+            await pubsub.unsubscribe()

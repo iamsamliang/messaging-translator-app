@@ -48,8 +48,10 @@ export function connectWebSocket() {
                     });
                 }
             }
-            socket.onclose = () => {
+            socket.onclose = (event) => {
                 unsubscribe_all();
+                const error_msg = JSON.parse(event.code.toString());
+                console.log(`Websocket code: ${error_msg}`);
                 console.log("WebSocket closed.");
             }
             // Define other event handlers as needed
