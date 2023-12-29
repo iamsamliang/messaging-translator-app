@@ -6,10 +6,25 @@
 	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
 
 	let inputValue: string = '';
+	let textArea: HTMLTextAreaElement;
+	let button: HTMLButtonElement;
+
 	export let senderID: number;
 	export let userLang: string;
 	export let firstName: string;
 	export let lastName: string;
+
+	function resizeTextArea() {
+		textArea.style.height = 'auto'; // Temporarily shrink to content size
+		textArea.style.height = `${textArea.scrollHeight}px`; // Set to scroll height
+	}
+
+	function handleKeyPress(event: KeyboardEvent) {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault(); // Prevent the default action (new line)
+			button.click();
+		}
+	}
 
 	function validateMessage(message: string): boolean {
 		// implement more robust validation
@@ -60,14 +75,26 @@
 			class="flex p-[10px] bg-white border-t border-solid border-gray-200"
 			on:submit|preventDefault={sendMessage}
 		>
-			<input
+			<!-- <input
 				bind:value={inputValue}
 				type="text"
 				placeholder="Write a message..."
 				class="flex-grow border-solid border border-blue-300 rounded-3xl py-[5px] px-[10px] mr-[10px] focus:outline-none"
-			/>
-			<button type="submit" class="send-message" disabled={inputValue.trim().length === 0}
-				>Send</button
+			/> -->
+			<textarea
+				bind:this={textArea}
+				bind:value={inputValue}
+				placeholder="Write a message..."
+				rows="1"
+				class="flex-grow resize-none border-solid border border-blue-300 rounded-xl py-[5px] px-[10px] mr-[10px] focus:outline-none max-h-[calc(3em*5)] no-scrollbar"
+				on:input={resizeTextArea}
+				on:keydown={handleKeyPress}
+			></textarea>
+			<button
+				bind:this={button}
+				type="submit"
+				class="send-message"
+				disabled={inputValue.trim().length === 0}>Send</button
 			>
 		</form>
 	</footer>
