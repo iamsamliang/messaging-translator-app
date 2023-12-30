@@ -52,7 +52,9 @@
 			// sender using websocket.onmessage
 			const newMessageInfo: LatestMessageInfo = {
 				text: message,
-				time: newMessage.sent_at // Format this time as needed
+				time: newMessage.sent_at, // Format this time as needed
+				isRead: 1,
+				translationID: -1
 			};
 			latestMessages.update((messages) => {
 				messages[newMessage.conversation_id] = newMessageInfo;

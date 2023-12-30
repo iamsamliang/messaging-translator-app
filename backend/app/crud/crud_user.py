@@ -10,6 +10,8 @@ from app.exceptions import UserAlreadyExistsException
 from app.core import security
 from .base import CRUDBase
 
+from devtools import debug
+
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     async def get_by_email(self, db: AsyncSession, email: EmailStr) -> User | None:
@@ -35,7 +37,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         # Assuming `user.target_language` holds the desired language of the user
         relevant_translations = await db.execute(
-            select(Translation.message_id, Translation.translation).where(
+            select(
+                Translation.message_id,
+                Translation.translation,
+                Translation.id,
+                Translation.is_read,
+            ).where(
                 Translation.message_id.in_(latest_message_ids),
                 Translation.language == user.target_language,
             )
@@ -44,16 +51,26 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         relevant_translations = relevant_translations.all()
 
         translation_map = {
-            trans.message_id: trans.translation for trans in relevant_translations
+            trans.message_id: (trans.translation, trans.id, trans.is_read)
+            for trans in relevant_translations
         }
 
         for conversation in user.conversations:
+            val = translation_map.get(conversation.latest_message.id)
             setattr(
                 conversation.latest_message,
                 "relevant_translation",
-                translation_map.get(
-                    conversation.latest_message.id,
-                ),
+                val[0],
+            )
+            setattr(
+                conversation.latest_message,
+                "translation_id",
+                val[1],
+            )
+            setattr(
+                conversation.latest_message,
+                "is_read",
+                val[2],
             )
 
         return user

@@ -1,4 +1,5 @@
 import type { MessageCreate } from "./interfaces/CreateModels.interface";
+import type { MessageReceive } from "./interfaces/ResponseModels.interface";
 import type { LatestMessageInfo } from "./interfaces/UnreadConvo.interface";
 import type { IConvo } from "./interfaces/iconvo.interface";
 import { messages, latestMessages, selectedConvo, currUserID } from "./stores/stores";
@@ -30,23 +31,49 @@ export function connectWebSocket() {
                 console.error(`WebSocket error: ${error}`);
             }
             socket.onopen = () => console.log("WebSocket is open now.");
-            socket.onmessage = (event) => {
-                const receivedMessage: MessageCreate = JSON.parse(event.data);
-                if (receivedMessage.conversation_id === currConvo?.id && receivedMessage.sender_id !== userID) {
-                    receivedMessage.sent_at = formatTime(receivedMessage.sent_at);
-                    const newMessageInfo: LatestMessageInfo = {
-                        text: receivedMessage.original_text,
-                        time: receivedMessage.sent_at // Format this time as needed
-                    };
+            socket.onmessage = async (event) => {
+                const receivedMessage: MessageReceive = JSON.parse(event.data);
+                receivedMessage.sent_at = formatTime(receivedMessage.sent_at);
+                const newMessageInfo: LatestMessageInfo = {
+                    text: receivedMessage.original_text,
+                    time: receivedMessage.sent_at, // Format this time as needed
+                    isRead: 1,
+                    translationID: receivedMessage.translation_id
+                };
 
-                    // update messages UI for real-time
-                    messages.update(m => [...m, receivedMessage]);
-                    // update the conversation block UI for this conversation with latest message for real-time
-                    latestMessages.update(messages => {
-                        messages[receivedMessage.conversation_id] = newMessageInfo;
-                        return messages;
-                    });
+                if (receivedMessage.conversation_id === currConvo?.id) {
+                    if (receivedMessage.sender_id !== userID) {
+
+                        // update messages UI for real-time
+                        messages.update(m => [...m, receivedMessage]);
+
+                        // notify server of this update
+                        const patchData = { is_read: 1 };
+                        const patchResponse: Response = await fetch(
+                            `http://localhost:8000/translations/${receivedMessage.translation_id}`,
+                            {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                credentials: 'include',
+                                body: JSON.stringify(patchData)
+                            }
+                        );
+                        if (!patchResponse.ok) {
+                            const errorResponse = await patchResponse.json();
+                            console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
+                            throw new Error(`Error code: ${patchResponse.status}`);
+                        }
+                    }
+                } else {
+                    newMessageInfo["isRead"] = 0;
                 }
+                // update the conversation block UI for this conversation with latest message for real-time
+                latestMessages.update(messages => {
+                    messages[receivedMessage.conversation_id] = newMessageInfo;
+                    return messages;
+                });
             }
             socket.onclose = (event) => {
                 unsubscribe_all();

@@ -125,6 +125,7 @@ async def create_message(
                         language=member.target_language,
                         target_user_id=member.id,
                         message_id=message.id,
+                        is_read=0,
                     ),
                 )
                 (await message.awaitable_attrs.translations).append(new_translation)
@@ -137,6 +138,7 @@ async def create_message(
                         language=member.target_language,
                         target_user_id=member.id,
                         message_id=message.id,
+                        is_read=1,
                     ),
                 )
                 (await message.awaitable_attrs.translations).append(new_translation)

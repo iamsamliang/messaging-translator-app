@@ -65,6 +65,8 @@ class LatestMessageResponse(BaseModel):
         ),
     ]
     relevant_translation: str
+    translation_id: int
+    is_read: int
 
 
 class ConversationResponse(BaseModel):

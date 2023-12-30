@@ -106,6 +106,7 @@ class Translation(Base):
     language: Mapped[str] = mapped_column(String(100))
     target_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     message_id: Mapped[int] = mapped_column(ForeignKey("messages.id"))
+    is_read: Mapped[int]
 
     message: Mapped[Message] = relationship(back_populates="translations")
     # user: Mapped[User] = relationship(back_populates="messages_received")

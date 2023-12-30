@@ -47,7 +47,10 @@
 		<div class="text-gray-600 text-[0.9rem]" class:is-selected-color={isSelected}>
 			{$latestMessages[convoID].time}
 		</div>
-		<div class="unread-indicator"></div>
+		<div
+			class="bg-[#007bff] text-white rounded-full flex items-center justify-center w-[0.6rem] h-[0.6rem]"
+			class:hidden={$latestMessages[convoID].isRead}
+		></div>
 	</div>
 </li>
 
@@ -60,28 +63,6 @@
 		border-bottom: 1px solid none;
 		height: 80px;
 		/* Separator between chats */
-	}
-
-	/* Unread message indicator */
-	.unread-indicator {
-		background-color: #007bff;
-		/* Blue background for the indicator */
-		color: white;
-		/* White text color */
-		border-radius: 50%;
-		/* Circular shape */
-		/* padding: 5px; */
-		/* Padding inside the indicator */
-		display: flex;
-		/* To center the content */
-		align-items: center;
-		/* Center content vertically */
-		justify-content: center;
-		/* Center content horizontally */
-		width: 0.6rem;
-		/* Fixed width */
-		height: 0.6rem;
-		/* Fixed height */
 	}
 
 	.is-selected {

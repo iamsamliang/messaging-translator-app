@@ -35,11 +35,33 @@
 			}));
 			messages.set(updatedMessages);
 
-			// get rid of new notifications indicator for this selected group chat
-			// latestMessages.update((unreads) => {
-			// 	delete unreads[convoID];
-			// 	return unreads;
-			// });
+			// get rid of new notifications indicator for this selected group chat if there are any
+			if (!$latestMessages[convoID].isRead) {
+				latestMessages.update((messages) => {
+					messages[convoID]['isRead'] = 1;
+					return messages;
+				});
+
+				// notify server of this update
+				const translation_id = $latestMessages[convoID].translationID;
+				const patchData = { is_read: 1 };
+				const patchResponse: Response = await fetch(
+					`http://localhost:8000/translations/${translation_id}`,
+					{
+						method: 'PATCH',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						credentials: 'include',
+						body: JSON.stringify(patchData)
+					}
+				);
+				if (!patchResponse.ok) {
+					const errorResponse = await patchResponse.json();
+					console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
+					throw new Error(`Error code: ${patchResponse.status}`);
+				}
+			}
 		} catch (error) {
 			console.error('Error fetching messages:', error);
 			messages.set([]); // Set messages to an empty array in case of error

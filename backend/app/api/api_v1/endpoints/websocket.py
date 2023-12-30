@@ -102,11 +102,12 @@ async def create_message_ws(
                         language=member.target_language,
                         target_user_id=member.id,
                         message_id=message.id,
+                        is_read=0,
                     ),
                 )
                 (await message.awaitable_attrs.translations).append(new_translation)
             else:
-                # just add the same message as a translation
+                # just add the same message as a translation and set is_read=1 bc you are the one sending the message
                 new_translation = await crud.translation.create(
                     db=db,
                     obj_in=schemas.TranslationCreate(
@@ -114,6 +115,7 @@ async def create_message_ws(
                         language=member.target_language,
                         target_user_id=member.id,
                         message_id=message.id,
+                        is_read=1,
                     ),
                 )
                 (await message.awaitable_attrs.translations).append(new_translation)
@@ -172,10 +174,12 @@ async def websocket_endpoint(
                 formatted_sent_at = new_message.sent_at.isoformat() + (
                     "Z" if new_message.sent_at.utcoffset() is None else ""
                 )
-                await redis_client.publish(
-                    f"chat_{chat_id}_{message['orig_language']}",
-                    json.dumps({**message, "sent_at": formatted_sent_at}),
-                )
+
+                # Given new setup, this should also be published to the user's channel
+                # await redis_client.publish(
+                #     f"chat_{chat_id}_{message['orig_language']}",
+                #     json.dumps({**message, "sent_at": formatted_sent_at}),
+                # )
 
                 # User sends message to all channels of all the languages in this group chat
                 # All subscribed users will get message
@@ -187,6 +191,7 @@ async def websocket_endpoint(
                                 **message,
                                 "sent_at": formatted_sent_at,
                                 "original_text": translation.translation,
+                                "translation_id": translation.id,
                             }
                         ),
                     )
