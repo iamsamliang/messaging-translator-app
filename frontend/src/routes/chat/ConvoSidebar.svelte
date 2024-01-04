@@ -9,11 +9,16 @@
 	export let currEmail: string;
 	export let convos: IConvo[];
 
+	let input = '';
+	let emails: string[] = [];
+	let emailsErrorMsg: string = '';
 	let showModal: boolean = false;
-	let peoples: string = '';
+	let chatName: string;
+	// let peoples: string = '';
 
-	function createChat(): void {
-		showModal = true;
+	async function handleClick(convo: IConvo): Promise<void> {
+		selectedConvo.set(convo);
+		await populateMessages(convo.id);
 	}
 
 	async function populateMessages(convoID: number): Promise<void> {
@@ -68,19 +73,52 @@
 		}
 	}
 
+	const addEmail = () => {
+		// Trim and remove trailing commas
+		let emailToAdd = input.trim().replace(/,$/, '');
+		// Simple email validation check and avoid duplicates
+		if (
+			emailToAdd &&
+			/^\S+@\S+\.\S+$/.test(emailToAdd) &&
+			!emails.includes(emailToAdd) &&
+			emailToAdd !== currEmail
+		) {
+			emails = [...emails, emailToAdd];
+			input = ''; // Clear input after adding
+			emailsErrorMsg = '';
+		} else {
+			emailsErrorMsg = 'Please enter a valid email address';
+		}
+	};
+
+	const removeEmail = (emailToRemove: string) => {
+		emails = emails.filter((email_new) => email_new !== emailToRemove);
+	};
+
+	// Prepend email when the user types a comma or presses Enter
+	const handleInput = (event: KeyboardEvent) => {
+		if (event.key === 'Enter' || event.key === ',') {
+			event.preventDefault(); // Prevent form submission or other default behaviors
+			if (!input.trim()) return; // If the input is only whitespace, do nothing
+			addEmail();
+		}
+	};
+
 	async function handleCreateChat(): Promise<void> {
-		const chatName: string = peoples.trim();
 		if (chatName.length > 255) {
 			alert('Chat Name is too long');
 			return;
 		}
 
-		const emails: string[] = chatName.split(',');
+		if (emails.length === 0) {
+			alert('You must add at least 1 user');
+			return;
+		}
+
 		emails.push(currEmail);
-		console.log(emails);
 
 		const createdChat: ConversationCreate = {
-			conversation_name: chatName,
+			conversation_name: chatName.trim(),
 			user_ids: emails
 		};
 
@@ -119,21 +157,22 @@
 		}
 
 		showModal = false;
-		peoples = '';
+		emails = [];
+		input = '';
+		chatName = '';
+		emailsErrorMsg = '';
+	}
+
+	function openModal(): void {
+		showModal = true;
 	}
 
 	function closeModal(): void {
 		showModal = false;
-		peoples = '';
-	}
-
-	function handleSubmit(): void {
-		handleCreateChat();
-	}
-
-	async function handleClick(convo: IConvo): Promise<void> {
-		selectedConvo.set(convo);
-		await populateMessages(convo.id);
+		emails = [];
+		input = '';
+		chatName = '';
+		emailsErrorMsg = '';
 	}
 </script>
 
@@ -147,23 +186,58 @@
 	>
 		<div
 			on:click|stopPropagation
-			class="bg-white rounded shadow-md p-8 w-[30%] flex flex-col gap-5"
+			class="bg-white rounded shadow-md p-8 w-[80%] md:w-[65%] lg:w-[55%] xl:w-[50%] 2xl:w-[45%] flex flex-col gap-5"
 		>
-			<div class="text-lg font-bold">
+			<div class="flex text-lg font-bold justify-center">
 				<h1>Create New Chat</h1>
 			</div>
-			<form on:submit|preventDefault={handleSubmit}>
-				<div>
-					<!-- svelte-ignore a11y-autofocus -->
-					<input
+			<!-- Implicitly awaits the async function -->
+			<form on:submit|preventDefault={handleCreateChat}>
+				<div class="flex flex-wrap items-center p-[5px] rounded gap-1">
+					<!-- <input
 						autofocus
 						required
 						type="text"
 						bind:value={peoples}
 						placeholder="Enter emails, separated by commas"
 						class="w-full"
+						/> -->
+
+					<!-- svelte-ignore a11y-autofocus -->
+					<input
+						autofocus
+						required
+						type="text"
+						class="w-full p-[5px] mb-2 border-none outline-none"
+						bind:value={chatName}
+						placeholder="Chat names"
+					/>
+					{#each emails as email}
+						<span class="bg-blue-500 text-white py-[5px] px-[10px] rounded-md flex items-center">
+							{email}
+							<button
+								on:click={() => removeEmail(email)}
+								class="bg-transparent border-none text-white ml-[5px] cursor-pointer"
+								>&times;</button
+							>
+						</span>
+					{/each}
+					<input
+						type="text"
+						class="flex-grow border-none outline-none p-[5px]"
+						bind:value={input}
+						on:keydown={handleInput}
+						placeholder="User emails"
 					/>
 				</div>
+				{#if emailsErrorMsg}
+					<div
+						class="flex justify-center text-red-500 text-sm transition-opacity duration-300 ease-in-out"
+						transition:fade={{ duration: 100 }}
+					>
+						{emailsErrorMsg}
+					</div>
+				{/if}
 				<div class="px-4 pt-3 sm:flex sm:flex-row-reverse sm:px-6">
 					<button
 						type="submit"
@@ -199,7 +273,7 @@
 			<button
 				class="place-content-center text-blue-400"
 				aria-label="New chat"
-				on:click|preventDefault={createChat}
+				on:click|preventDefault={openModal}
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"

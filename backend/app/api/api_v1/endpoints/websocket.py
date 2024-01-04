@@ -60,9 +60,11 @@ async def create_message_ws(
 
         message = await crud.message.create(db=db, obj_in=obj_in)
 
-        # TODO: Implement only grabbing the previous X messages in chat
         chat_history = []
-        for history_msg in await convo.awaitable_attrs.messages:
+        N = 25  # grab the previous N messages
+        recent_msgs = (await convo.awaitable_attrs.messages)[-N:]
+
+        for history_msg in recent_msgs:
             if history_msg.orig_language == obj_in.orig_language:
                 chat_history.append((obj_in.sender_id, history_msg.original_text))
             else:
@@ -167,12 +169,11 @@ async def websocket_endpoint(
                         orig_language=message["orig_language"],
                         original_text=message["original_text"],
                     )
-                    # translations = list of sent message in translated languages
                     new_message = await create_message_ws(db=db, obj_in=obj_in)
 
                 # first publish to the sender's language channel
-                formatted_sent_at = new_message.sent_at.isoformat() + (
-                    "Z" if new_message.sent_at.utcoffset() is None else ""
+                formatted_sent_at = new_message.sent_at.isoformat() + (  # type: ignore
+                    "Z" if new_message.sent_at.utcoffset() is None else ""  # type: ignore
                 )
 
                 # Given new setup, this should also be published to the user's channel
@@ -199,9 +200,9 @@ async def websocket_endpoint(
                 # await manager.broadcast(data, websocket, chat_id)
         finally:
             # Cancel and await the listener task to ensure clean shutdown
-            future.cancel()
+            future.cancel()  # type: ignore
             try:
-                await future
+                await future  # type: ignore
             except asyncio.CancelledError:
                 pass
 

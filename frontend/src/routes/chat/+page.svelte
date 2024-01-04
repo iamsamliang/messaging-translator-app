@@ -8,7 +8,6 @@
 	import { currUserID, selectedConvo, latestMessages } from '$lib/stores/stores';
 	import { formatTime } from '$lib/utils';
 	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
-	import { get } from 'svelte/store';
 
 	export let data;
 
