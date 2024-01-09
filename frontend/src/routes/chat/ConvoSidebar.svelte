@@ -263,7 +263,9 @@
 {/if}
 
 <!-- Sidebar for chats -->
-<aside class="chats-sidebar min-w-fit md:min-w-[400px] max-w-[400px]">
+<aside
+	class="chats-sidebar min-w-fit md:min-w-[400px] max-w-[400px] overflow-y-auto overscroll-contain no-scrollbar"
+>
 	<!-- Sidebar Header -->
 	<header class="chats-sidebar-header">
 		<div class="pl-4 w-[80%] h-[36px] hidden md:flex">

@@ -27,7 +27,7 @@
 	});
 </script>
 
-<div class="message-container no-scrollbar" bind:this={messagesContainer}>
+<div class="message-container no-scrollbar overscroll-contain" bind:this={messagesContainer}>
 	<!-- Repeat this 'message' div for each message in the chat -->
 	{#each $messages as message}
 		<Message
