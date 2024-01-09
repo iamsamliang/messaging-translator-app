@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getCurrentTime } from '$lib/utils';
 	import { sendMessageSocket } from '$lib/websocket';
-	import { latestMessages, messages, selectedConvo } from '$lib/stores/stores';
+	import { conversations, latestMessages, messages, selectedConvo } from '$lib/stores/stores';
 	import type { MessageCreate } from '$lib/interfaces/CreateModels.interface';
 	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
 
@@ -41,6 +41,7 @@
 				original_text: message,
 				sender_id: senderID,
 				conversation_id: $selectedConvo.id,
+				conversation_name: $selectedConvo.conversation_name,
 				orig_language: userLang,
 				sent_at: getCurrentTime(),
 				first_name: firstName,
@@ -48,7 +49,16 @@
 			};
 			messages.update((m) => [...m, newMessage]);
 
-			// update UI for the Conversation block in the Conversation lists. Need this otherwise too slow to update for
+			// When we send a msg, the corresponding conversation must be put at top of list
+			conversations.update((currConversations) => {
+				if (currConversations.has($selectedConvo.id)) {
+					currConversations.delete($selectedConvo.id);
+				}
+				currConversations.set($selectedConvo.id, { convoName: $selectedConvo.conversation_name });
+
+				return currConversations;
+			});
+
 			// sender using websocket.onmessage
 			const newMessageInfo: LatestMessageInfo = {
 				text: message,

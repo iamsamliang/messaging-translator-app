@@ -25,13 +25,39 @@ from fastapi import (
 router = APIRouter()
 
 
-async def rlistener(websocket: WebSocket, channel: PubSub) -> None:
+async def subscription_manager(
+    pubsub: PubSub, subscription_queue: asyncio.Queue[str]
+) -> None:
+    while True:
+        new_channel = await subscription_queue.get()
+        await pubsub.subscribe(new_channel)
+
+
+async def rlistener(
+    user: models.User,
+    websocket: WebSocket,
+    channel: PubSub,
+    subscription_queue: asyncio.Queue[str],
+) -> None:
     while True:
         try:
             message = await channel.get_message(ignore_subscribe_messages=True)
             if message:
-                # send received text from other users in this chat room back to this user
-                await websocket.send_text(message["data"])
+                channel_name = message["channel"]
+
+                # channel for handling text messages
+                if channel_name.startswith("chat_"):
+                    await websocket.send_text(message["data"])
+                # channel for handling new chat creations
+                elif channel_name == str(user.id):
+                    convo_id = json.loads(message["data"])["convo_id"]
+                    new_channel = f"chat_{convo_id}_{user.target_language}"
+                    print(new_channel)
+                    await subscription_queue.put(new_channel)
+                else:
+                    logging.warning(
+                        f"Received message from unknown channel: {channel_name}"
+                    )
         except WebSocketDisconnect:
             logging.info("Websocket disconnected")
             break
@@ -42,7 +68,6 @@ async def rlistener(websocket: WebSocket, channel: PubSub) -> None:
             break
 
 
-# TODO: I might need to append the user id to each message so I can use that in the front end to display the message left or right
 async def create_message_ws(
     db: AsyncSession, obj_in: schemas.MessageCreate
 ) -> models.Message:
@@ -136,13 +161,26 @@ async def websocket_endpoint(
 ) -> None:
     await websocket.accept()
     redis_client: Redis = websocket.app.state.redis_client
+    listener_task = None
+    subscription_task = None
 
     async with redis_client.pubsub() as pubsub:
         try:
+            await pubsub.subscribe(f"{user.id}")
             for convo in user.conversations:
                 await pubsub.subscribe(f"chat_{convo.id}_{user.target_language}")
 
-            future = asyncio.create_task(rlistener(websocket, pubsub))
+            subscription_queue: asyncio.Queue[str] = asyncio.Queue()
+
+            # start subscription manager task
+            subscription_task = asyncio.create_task(
+                subscription_manager(pubsub, subscription_queue)
+            )
+
+            # start message listener task
+            listener_task = asyncio.create_task(
+                rlistener(user, websocket, pubsub, subscription_queue)
+            )
 
             while True:
                 # handles this user sending a message to this chat room
@@ -171,7 +209,6 @@ async def websocket_endpoint(
                     )
                     new_message = await create_message_ws(db=db, obj_in=obj_in)
 
-                # first publish to the sender's language channel
                 formatted_sent_at = new_message.sent_at.isoformat() + (  # type: ignore
                     "Z" if new_message.sent_at.utcoffset() is None else ""  # type: ignore
                 )
@@ -198,13 +235,23 @@ async def websocket_endpoint(
                     )
 
                 # await manager.broadcast(data, websocket, chat_id)
+        except WebSocketDisconnect:
+            pass  # if client disconnects, don't need to do anything
         finally:
-            # Cancel and await the listener task to ensure clean shutdown
-            future.cancel()  # type: ignore
-            try:
-                await future  # type: ignore
-            except asyncio.CancelledError:
-                pass
+            # Cancel and await the listener and subscription tasks to ensure clean shutdown
+            if listener_task is not None:
+                listener_task.cancel()
+                try:
+                    await listener_task
+                except asyncio.CancelledError:
+                    pass
+
+            if subscription_task is not None:
+                subscription_task.cancel()
+                try:
+                    await subscription_task
+                except asyncio.CancelledError:
+                    pass
 
             # Close the websocket if it's not already closed.
             if not websocket.client_state == WebSocketState.DISCONNECTED:

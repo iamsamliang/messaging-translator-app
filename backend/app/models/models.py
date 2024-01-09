@@ -64,7 +64,9 @@ class User(Base):
     #     back_populates="user",
     # )
     conversations: Mapped[List["Conversation"]] = relationship(
-        secondary=group_member_association, back_populates="members"
+        secondary=group_member_association,
+        back_populates="members",
+        order_by="Conversation.latest_message_id.asc()",
     )
 
 

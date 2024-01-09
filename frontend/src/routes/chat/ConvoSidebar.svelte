@@ -2,12 +2,19 @@
 	import type { ConversationCreate, MessageCreate } from '$lib/interfaces/CreateModels.interface';
 	import Convo from './Convo.svelte';
 	import { fade } from 'svelte/transition';
-	import { selectedConvo, latestMessages, messages } from '$lib/stores/stores';
+	import { selectedConvo, latestMessages, messages, conversations } from '$lib/stores/stores';
 	import type { IConvo } from '$lib/interfaces/iconvo.interface';
 	import { formatTime } from '$lib/utils';
+	import { derived } from 'svelte/store';
+	import type { Conversation } from '$lib/interfaces/ConvoList.interface';
 
 	export let currEmail: string;
-	export let convos: IConvo[];
+
+	type ConversationEntry = [number, Conversation];
+
+	const convosArray = derived(conversations, ($conversations): ConversationEntry[] =>
+		Array.from($conversations.entries()).reverse()
+	);
 
 	let input = '';
 	let emails: string[] = [];
@@ -41,30 +48,32 @@
 			messages.set(updatedMessages);
 
 			// get rid of new notifications indicator for this selected group chat if there are any
-			if (!$latestMessages[convoID].isRead) {
-				latestMessages.update((messages) => {
-					messages[convoID]['isRead'] = 1;
-					return messages;
-				});
+			if ($latestMessages[convoID]) {
+				if (!$latestMessages[convoID].isRead) {
+					latestMessages.update((messages) => {
+						messages[convoID]['isRead'] = 1;
+						return messages;
+					});
 
-				// notify server of this update
-				const translation_id = $latestMessages[convoID].translationID;
-				const patchData = { is_read: 1 };
-				const patchResponse: Response = await fetch(
-					`http://localhost:8000/translations/${translation_id}`,
-					{
-						method: 'PATCH',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						credentials: 'include',
-						body: JSON.stringify(patchData)
+					// notify server of this update
+					const translation_id = $latestMessages[convoID].translationID;
+					const patchData = { is_read: 1 };
+					const patchResponse: Response = await fetch(
+						`http://localhost:8000/translations/${translation_id}`,
+						{
+							method: 'PATCH',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							credentials: 'include',
+							body: JSON.stringify(patchData)
+						}
+					);
+					if (!patchResponse.ok) {
+						const errorResponse = await patchResponse.json();
+						console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
+						throw new Error(`Error code: ${patchResponse.status}`);
 					}
-				);
-				if (!patchResponse.ok) {
-					const errorResponse = await patchResponse.json();
-					console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-					throw new Error(`Error code: ${patchResponse.status}`);
 				}
 			}
 		} catch (error) {
@@ -142,15 +151,12 @@
 				conversation_name: chatName,
 				id: data.id
 			};
-			selectedConvo.update(() => updaterVal);
-			// selectedConvoID = data.id;
+			handleClick(updaterVal); // update ChatHeader and MessageContainer
 
-			const newConvo: IConvo = {
-				conversation_name: data.conversation_name,
-				id: data.id
-			};
-
-			convos = [newConvo, ...convos];
+			conversations.update((currConversations) => {
+				currConversations.set(data.id, { convoName: data.conversation_name });
+				return currConversations;
+			});
 		} catch (error) {
 			console.error('There was a problem with the fetch operation:', error);
 			// Optionally handle the error (e.g., show an error message to the user)
@@ -210,7 +216,7 @@
 						type="text"
 						class="w-full p-[5px] mb-2 border-none outline-none"
 						bind:value={chatName}
-						placeholder="Chat names"
+						placeholder="Chat name"
 					/>
 					{#each emails as email}
 						<span class="bg-blue-500 text-white py-[5px] px-[10px] rounded-md flex items-center">
@@ -296,12 +302,12 @@
 
 	<!-- Chat list -->
 	<ul class="p-3">
-		{#each convos as convo}
+		{#each $convosArray as [convoID, convo]}
 			<Convo
-				convoID={convo.id}
-				chatName={convo.conversation_name}
-				isSelected={$selectedConvo?.id === convo.id}
-				on:click={() => handleClick(convo)}
+				{convoID}
+				chatName={convo.convoName}
+				isSelected={$selectedConvo?.id === convoID}
+				on:click={() => handleClick({ conversation_name: convo.convoName, id: convoID })}
 			/>
 		{/each}
 	</ul>

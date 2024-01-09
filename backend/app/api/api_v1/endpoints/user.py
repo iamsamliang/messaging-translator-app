@@ -12,7 +12,6 @@ router = APIRouter()
 
 
 # Users
-# TODO: Test this endpoint
 @router.get("/me", response_model=schemas.UserOut)
 async def get_me(
     current_user: Annotated[models.User, Depends(verify_current_user)]

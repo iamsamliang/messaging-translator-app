@@ -32,7 +32,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         )
 
         latest_message_ids = [
-            conversation.latest_message.id for conversation in user.conversations
+            conversation.latest_message.id
+            for conversation in user.conversations
+            if conversation.latest_message is not None
         ]
 
         # Assuming `user.target_language` holds the desired language of the user
@@ -56,22 +58,23 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         }
 
         for conversation in user.conversations:
-            val = translation_map.get(conversation.latest_message.id)
-            setattr(
-                conversation.latest_message,
-                "relevant_translation",
-                val[0],
-            )
-            setattr(
-                conversation.latest_message,
-                "translation_id",
-                val[1],
-            )
-            setattr(
-                conversation.latest_message,
-                "is_read",
-                val[2],
-            )
+            if conversation.latest_message:
+                val = translation_map.get(conversation.latest_message.id)
+                setattr(
+                    conversation.latest_message,
+                    "relevant_translation",
+                    val[0],
+                )
+                setattr(
+                    conversation.latest_message,
+                    "translation_id",
+                    val[1],
+                )
+                setattr(
+                    conversation.latest_message,
+                    "is_read",
+                    val[2],
+                )
 
         return user
 

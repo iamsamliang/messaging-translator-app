@@ -5,24 +5,33 @@
 	import MessagesContainer from './MessagesContainer.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { connectWebSocket, closeWebSocket } from '$lib/websocket';
-	import { currUserID, selectedConvo, latestMessages } from '$lib/stores/stores';
+	import { currUserID, selectedConvo, latestMessages, conversations } from '$lib/stores/stores';
 	import { formatTime } from '$lib/utils';
 	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
+	import type { Conversation } from '$lib/interfaces/ConvoList.interface';
 
 	export let data;
 
 	latestMessages.set(
 		data.user.conversations.reduce((acc: Record<number, LatestMessageInfo>, conversation: any) => {
-			acc[conversation.id] = {
-				text: conversation.latest_message.relevant_translation,
-				time: formatTime(conversation.latest_message.sent_at),
-				isRead: conversation.latest_message.is_read,
-				translationID: conversation.latest_message.translation_id
-			};
+			if (conversation.latest_message) {
+				acc[conversation.id] = {
+					text: conversation.latest_message.relevant_translation,
+					time: formatTime(conversation.latest_message.sent_at),
+					isRead: conversation.latest_message.is_read,
+					translationID: conversation.latest_message.translation_id
+				};
+			}
 			return acc;
 		}, {})
 	);
 	currUserID.set(data.user.id);
+	conversations.set(
+		data.user.conversations.reduce((acc: Map<number, Conversation>, conversation: any) => {
+			acc.set(conversation.id, { convoName: conversation.conversation_name });
+			return acc;
+		}, new Map())
+	);
 
 	onMount(() => {
 		connectWebSocket();
@@ -34,7 +43,7 @@
 </script>
 
 <main class="messaging-app">
-	<ConvoSidebar currEmail={data.user.email} convos={data.user.conversations} />
+	<ConvoSidebar currEmail={data.user.email} />
 
 	<!-- Actual Chat Area -->
 	{#if $selectedConvo}
@@ -47,16 +56,6 @@
 				firstName={data.user.first_name}
 				lastName={data.user.last_name}
 			/>
-
-			<!-- Individual Chat Content for Group Chats-->
-			<!-- <div class="message-container">
-            <div class="message">
-                <div class="message-sender-photo"></div>
-                <div class="message-sender-name"></div>
-                <div class="message-content"></div>
-                <div class="message-time"></div>
-            </div>
-        </div> -->
 		</section>
 	{/if}
 </main>

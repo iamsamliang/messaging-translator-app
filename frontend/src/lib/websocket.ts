@@ -1,8 +1,9 @@
+import { get } from "svelte/store";
 import type { MessageCreate } from "./interfaces/CreateModels.interface";
 import type { MessageReceive } from "./interfaces/ResponseModels.interface";
 import type { LatestMessageInfo } from "./interfaces/UnreadConvo.interface";
 import type { IConvo } from "./interfaces/iconvo.interface";
-import { messages, latestMessages, selectedConvo, currUserID } from "./stores/stores";
+import { messages, latestMessages, selectedConvo, currUserID, conversations } from "./stores/stores";
 import { formatTime } from "./utils";
 
 // src/lib/websocket.js
@@ -74,6 +75,18 @@ export function connectWebSocket() {
                     messages[receivedMessage.conversation_id] = newMessageInfo;
                     return messages;
                 });
+
+                // When we receive a message, the conversation must be put at the top of the list
+                conversations.update((currConversations) => {
+                    if (currConversations.has(receivedMessage.conversation_id)) {
+                        currConversations.delete(receivedMessage.conversation_id);
+                    }
+                    currConversations.set(receivedMessage.conversation_id, { convoName: receivedMessage.conversation_name });
+
+                    return currConversations;
+                });
+                console.log(get(latestMessages));
+                console.log(get(conversations));
             }
             socket.onclose = (event) => {
                 unsubscribe_all();

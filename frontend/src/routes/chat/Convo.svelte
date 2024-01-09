@@ -38,18 +38,22 @@
 			class="text-[0.9rem] text-gray-600 overflow-hidden text-ellipsis truncate"
 			class:is-selected-color={isSelected}
 		>
-			{$latestMessages[convoID].text}
+			{#if $latestMessages[convoID]}
+				{$latestMessages[convoID].text}
+			{/if}
 		</div>
 	</div>
 	<div
 		class="flex-grow-0 flex-shrink-0 basis-auto flex-col gap-[0.8rem] items-end h-full hidden md:flex"
 	>
 		<div class="text-gray-600 text-[0.9rem]" class:is-selected-color={isSelected}>
-			{$latestMessages[convoID].time}
+			{#if $latestMessages[convoID]}
+				{$latestMessages[convoID].time}
+			{/if}
 		</div>
 		<div
 			class="bg-[#007bff] text-white rounded-full flex items-center justify-center w-[0.6rem] h-[0.6rem]"
-			class:hidden={$latestMessages[convoID].isRead}
+			class:hidden={$latestMessages[convoID] ? $latestMessages[convoID].isRead : true}
 		></div>
 	</div>
 </li>

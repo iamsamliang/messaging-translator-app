@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, status, Response
+import json
+from fastapi import APIRouter, HTTPException, Request, status, Response
 from sqlalchemy.exc import IntegrityError
+from redis.asyncio import Redis
 
 from app import crud, models, schemas
 from app.api.dependencies import DatabaseDep
@@ -31,7 +33,10 @@ async def get_convo(db: DatabaseDep, conversation_id: int) -> models.Conversatio
     status_code=status.HTTP_201_CREATED,
 )
 async def create_convo(
-    db: DatabaseDep, request: schemas.ConversationCreate, response: Response
+    db: DatabaseDep,
+    request: schemas.ConversationCreate,
+    response: Response,
+    req: Request,
 ) -> models.Conversation:
     try:
         new_convo = await crud.conversation.create(
@@ -40,8 +45,11 @@ async def create_convo(
                 conversation_name=request.conversation_name
             ),
         )
+        await db.flush()
+
         members = await new_convo.awaitable_attrs.members
         user_emails: set[str] = set()
+        redis_client: Redis = req.app.state.redis_client
         for email in request.user_ids:
             if email not in user_emails:
                 user_emails.add(email)
@@ -52,8 +60,13 @@ async def create_convo(
                         detail=f"User w/ email {email} doesn't exist",
                     )
                 members.append(user)
+                # let others know a new channel is being created so they subscribe to it
+                await redis_client.publish(
+                    f"{user.id}", json.dumps({"convo_id": new_convo.id})
+                )
         # note this needs to be here for the group_member table to update
         await db.commit()
+
         response.headers["Location"] = f"/conversations/{new_convo.id}"
         return new_convo
     except IntegrityError as e:
@@ -63,13 +76,12 @@ async def create_convo(
 
 @router.patch(
     "/{convo_id}/update-name",
-    response_model=schemas.ConversationResponse,
 )
 async def update_convo_name(
     db: DatabaseDep,
     convo_id: int,
     request: schemas.ConversationNameUpdate,
-) -> models.Conversation:
+) -> None:
     convo = await crud.conversation.get(db=db, id=convo_id)
     if convo is None:
         raise HTTPException(
@@ -79,7 +91,6 @@ async def update_convo_name(
     try:
         res = await crud.conversation.update(db=db, db_obj=convo, obj_in=request)
         await db.commit()
-        return res
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
