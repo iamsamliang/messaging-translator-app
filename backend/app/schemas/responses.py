@@ -1,8 +1,7 @@
 from typing import Annotated
-from pydantic import ConfigDict, BaseModel, StringConstraints
+from pydantic import ConfigDict, BaseModel, StringConstraints, EmailStr, field_validator
 from datetime import datetime
 from pydantic.functional_serializers import PlainSerializer
-from .user import UserBase
 
 
 class TranslationResponse(BaseModel):
@@ -14,16 +13,46 @@ class UserCreateOut(BaseModel):
     id: int
 
 
-class UserOut(UserBase):
+class MembersOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    first_name: Annotated[str, StringConstraints(strip_whitespace=True)]
+    last_name: Annotated[str, StringConstraints(strip_whitespace=True)]
+    profile_photo: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
+    )
+    email: EmailStr
+    target_language: Annotated[str, StringConstraints(strip_whitespace=True)]
+    is_admin: bool
+    presigned_url: str | None
+
+
+class UserOut(BaseModel):
     """Output Schema for any function returning User object"""
 
     model_config = ConfigDict(from_attributes=True)
+
     id: int
+    first_name: Annotated[str, StringConstraints(strip_whitespace=True)]
+    last_name: Annotated[str, StringConstraints(strip_whitespace=True)]
+    profile_photo: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
+    )
+    email: EmailStr
+    target_language: Annotated[str, StringConstraints(strip_whitespace=True)]
+    is_admin: bool
     created_at: datetime
 
-    # messages_sent: list["MessageResponse"] = []
-    # # messages_received: list["MessageOut"] = []
-    conversations: list["ConversationResponse"] = []
+    @field_validator("target_language")
+    @classmethod
+    def capitalize_language(cls, v: str) -> str:
+        return v.title()
+
+
+class UserOutExtraInfo(UserOut):
+    presigned_url: str | None
+    conversations: list["ConversationResponse"]
 
 
 class MessageResponse(BaseModel):
@@ -31,7 +60,6 @@ class MessageResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
     conversation_id: int
     sender_id: int
     # receiver_id: int
@@ -46,8 +74,11 @@ class MessageResponse(BaseModel):
             return_type=str,
         ),
     ]
-    # sent_at: datetime
-    # conversation: "ConversationResponse"
+
+    # sender name
+    sender_name: str | None
+    display_photo: bool
+
     # translations: list["TranslationResponse"]
 
 
@@ -64,9 +95,9 @@ class LatestMessageResponse(BaseModel):
             return_type=str,
         ),
     ]
-    relevant_translation: str
-    translation_id: int
-    is_read: int
+    relevant_translation: str | None = None
+    translation_id: int | None = None
+    is_read: int | None = None
 
 
 class ConversationResponse(BaseModel):
@@ -76,11 +107,18 @@ class ConversationResponse(BaseModel):
 
     id: int
 
-    # need forward references for type hints to avoid NameErrors and help circular importd
-    conversation_name: Annotated[str, StringConstraints(max_length=255)]
+    conversation_name: Annotated[str, StringConstraints(max_length=255)] | None
     latest_message: LatestMessageResponse | None = None
+
+    is_group_chat: bool
+    presigned_url: str | None
     # messages: list[MessageResponse] = []
-    # members: list[UserOut] = []
 
 
-UserOut.model_rebuild()
+class GetMembersResponse(BaseModel):
+    members: dict[int, MembersOut]
+    sorted_member_ids: list[int]
+    gc_url: str | None
+
+
+UserOutExtraInfo.model_rebuild()

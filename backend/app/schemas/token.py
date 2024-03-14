@@ -1,8 +1,10 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 
 class TokenPayLoad(BaseModel):
-    username: str
+    userid: str
+    iat: datetime
 
 
 class TokenOut(BaseModel):

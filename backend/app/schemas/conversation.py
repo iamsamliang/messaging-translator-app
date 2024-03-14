@@ -1,8 +1,7 @@
 from __future__ import annotations
-from re import S
 
-from pydantic import BaseModel, ConfigDict, EmailStr, StringConstraints
-from typing import Annotated, TYPE_CHECKING
+from pydantic import BaseModel, EmailStr, StringConstraints
+from typing import Annotated
 from enum import Enum
 
 # if TYPE_CHECKING:
@@ -16,26 +15,29 @@ class Method(str, Enum):
 
 
 class ConversationCreate(BaseModel):
-    conversation_name: Annotated[str, StringConstraints(max_length=255)]
+    conversation_name: Annotated[str, StringConstraints(max_length=255)] | None = None
     user_ids: list[EmailStr]
-    # latest_message_id: int
+    is_group_chat: bool
 
 
 class ConversationCreateDB(BaseModel):
     """Input Schema for function Conversation.Create"""
 
-    conversation_name: Annotated[str, StringConstraints(max_length=255)]
+    conversation_name: Annotated[str, StringConstraints(max_length=255)] | None
+    is_group_chat: bool
     # latest_message_id: int
     # members: list[UserOut]
 
 
-class ConversationNameUpdate(BaseModel):
-    conversation_name: Annotated[str, StringConstraints(max_length=255)]
+class ConversationUpdate(BaseModel):
+    conversation_name: Annotated[str, StringConstraints(max_length=255)] | None = None
+    conversation_photo: Annotated[str, StringConstraints(max_length=255)] | None = None
 
 
 class ConversationMemberUpdate(BaseModel):
     method: Method
     user_ids: list[EmailStr]
+    sorted_ids: list[int]
 
 
 # class ConversationMessageUpdate(BaseModel):

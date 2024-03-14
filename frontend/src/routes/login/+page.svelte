@@ -20,12 +20,12 @@
 		<h1 class="text-3xl font-bold mb-3">Log In</h1>
 		{#if form?.incorrect}
 			<div class="border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-				<strong class="font-bold">Error!</strong>
+				<strong class="font-bold">Error:</strong>
 				<span class="block sm:inline">Invalid email or password</span>
 			</div>
 		{:else if form?.error}
 			<div class="border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-				<strong class="font-bold">Error!</strong>
+				<strong class="font-bold">Error:</strong>
 				<span class="block sm:inline">{form.error}</span>
 			</div>
 		{/if}
@@ -65,9 +65,11 @@
 			</div>
 
 			<div class="flex items-center justify-center">
-				<span class="text-sm"
-					>Don't have an account? <a href="/signup" class="hover:underline">Sign up</a></span
-				>
+				<span class="text-sm text-gray-100">
+					Don't have an account? <a href="/signup" class="hover:underline">
+						<strong class="font-bold">Sign up</strong>
+					</a>
+				</span>
 			</div>
 		</form>
 	</div>

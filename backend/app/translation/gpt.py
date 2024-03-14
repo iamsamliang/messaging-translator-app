@@ -1,3 +1,4 @@
+from app.exceptions import OpenAIAuthenticationException
 import openai
 
 
@@ -7,6 +8,7 @@ async def translate(
     text_input: str,
     target_language: str,
     chat_history: list[tuple[int, str]],
+    api_key: str,
 ) -> str | None:
     # User {message.sender_id}: {translation.text}
     # User ....
@@ -42,6 +44,12 @@ async def translate(
     # )
 
     # print(f"In GPT Translation Function. This is the prompt: {PROMPT_MSGS}")
+
+    # whitespace will already be stripped. The strippping is necessary
+    if not api_key:
+        raise OpenAIAuthenticationException()
+
+    openai.api_key = api_key
 
     response = openai.chat.completions.create(
         model="gpt-4",

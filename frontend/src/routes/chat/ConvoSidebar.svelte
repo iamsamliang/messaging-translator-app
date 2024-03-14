@@ -2,11 +2,21 @@
 	import type { ConversationCreate, MessageCreate } from '$lib/interfaces/CreateModels.interface';
 	import Convo from './Convo.svelte';
 	import { fade } from 'svelte/transition';
-	import { selectedConvo, latestMessages, messages, conversations } from '$lib/stores/stores';
-	import type { IConvo } from '$lib/interfaces/iconvo.interface';
-	import { formatTime } from '$lib/utils';
+	import {
+		selectedConvoID,
+		selectedConvo,
+		latestMessages,
+		messages,
+		conversations,
+		convoMembers,
+		currUser,
+		displayChatInfo,
+		isUserSettings,
+		sortedConvoMemberIDs
+	} from '$lib/stores/stores';
 	import { derived } from 'svelte/store';
-	import type { Conversation } from '$lib/interfaces/ConvoList.interface';
+	import type { Conversation, GetMembersResponse } from '$lib/interfaces/ResponseModels.interface';
+	import { isPresignedExpired, refreshGETPresigned } from '$lib/aws';
 
 	export let currEmail: string;
 
@@ -20,12 +30,86 @@
 	let emails: string[] = [];
 	let emailsErrorMsg: string = '';
 	let showModal: boolean = false;
-	let chatName: string;
-	// let peoples: string = '';
+	let chatName: string = '';
 
-	async function handleClick(convo: IConvo): Promise<void> {
-		selectedConvo.set(convo);
-		await populateMessages(convo.id);
+	async function openUserSettings(): Promise<void> {
+		// check expiration time of presigned URL for current user
+		if ($currUser.presigned_url) {
+			if (isPresignedExpired($currUser.presigned_url)) {
+				try {
+					const newURLs = await refreshGETPresigned('user_ids', [$currUser.id]);
+					currUser.update((user) => {
+						user = { ...user, presigned_url: newURLs[user.id] };
+
+						return user;
+					});
+				} catch (error) {
+					console.error('Error refreshing current user GET presigned URL:', error);
+				}
+			}
+		}
+
+		selectedConvoID.set(-10);
+		displayChatInfo.set(false);
+		isUserSettings.set(true);
+	}
+
+	async function handleClick(convoID: number): Promise<void> {
+		await getMembers(convoID);
+
+		if (convoID !== $selectedConvoID) {
+			messages.set([]);
+			selectedConvoID.set(convoID);
+
+			if (!$selectedConvo?.isGroupChat) {
+				displayChatInfo.set(false);
+			}
+
+			await populateMessages(convoID);
+		}
+	}
+
+	async function getMembers(convoID: number): Promise<void> {
+		try {
+			const response: Response = await fetch(
+				`http://localhost:8000/conversations/${convoID}/members`,
+				{
+					method: 'GET',
+					credentials: 'include'
+				}
+			);
+			if (!response.ok) {
+				const errorResponse = await response.json();
+				console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
+				throw new Error(`Error code: ${response.status}`);
+			}
+
+			// { "members": members_dict, "sorted_member_ids": sorted_member_ids, "gc_url": gc_url }
+			const membersData: GetMembersResponse = await response.json();
+
+			// update chat presigned URL
+			conversations.update((currConversations) => {
+				const prevVal = currConversations.get(convoID);
+
+				if (prevVal) {
+					currConversations.set(convoID, { ...prevVal, presignedUrl: membersData.gc_url });
+				}
+
+				return currConversations;
+			});
+
+			convoMembers.set(membersData.members);
+
+			currUser.update((user) => {
+				user = { ...user, presigned_url: membersData.members[user.id].presigned_url };
+
+				return user;
+			});
+
+			sortedConvoMemberIDs.set(membersData.sorted_member_ids);
+		} catch (error) {
+			console.error('Error fetching chat members:', error);
+		}
 	}
 
 	async function populateMessages(convoID: number): Promise<void> {
@@ -41,11 +125,12 @@
 			}
 
 			const data: MessageCreate[] = await response.json();
-			const updatedMessages = data.map((message: MessageCreate) => ({
-				...message,
-				sent_at: formatTime(message.sent_at)
-			}));
-			messages.set(updatedMessages);
+			// const updatedMessages = data.map((message: MessageCreate) => ({
+			// 	...message,
+			// 	sent_at: formatTime(message.sent_at)
+			// }));
+
+			messages.set(data);
 
 			// get rid of new notifications indicator for this selected group chat if there are any
 			if ($latestMessages[convoID]) {
@@ -106,7 +191,7 @@
 
 	// Prepend email when the user types a comma or presses Enter
 	const handleInput = (event: KeyboardEvent) => {
-		if (event.key === 'Enter' || event.key === ',') {
+		if (event.key === 'Enter' || event.key === ',' || event.key === 'Tab') {
 			event.preventDefault(); // Prevent form submission or other default behaviors
 			if (!input.trim()) return; // If the input is only whitespace, do nothing
 			addEmail();
@@ -114,59 +199,68 @@
 	};
 
 	async function handleCreateChat(): Promise<void> {
-		if (chatName.length > 255) {
-			alert('Chat Name is too long');
-			return;
-		}
-
 		if (emails.length === 0) {
 			alert('You must add at least 1 user');
 			return;
 		}
 
-		emails.push(currEmail);
+		emails.push(currEmail); // add self
+
+		const isGroupChat = emails.length >= 3;
+		let convoNameCreateVal: string | null = null;
+
+		if (isGroupChat) convoNameCreateVal = chatName.trim();
 
 		const createdChat: ConversationCreate = {
-			conversation_name: chatName.trim(),
-			user_ids: emails
+			conversation_name: convoNameCreateVal,
+			user_ids: emails,
+			is_group_chat: isGroupChat
 		};
 
 		try {
-			const response: Response = await fetch('http://localhost:8000/conversations', {
+			const response: Response = await fetch('http://localhost:8000/conversations/create', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify(createdChat)
 			});
 
 			if (!response.ok) {
 				const errorResponse = await response.json();
-				console.error('Error details:', errorResponse);
-				throw new Error(`Error code: ${response.status}`);
+				if (response.status === 404) {
+					emailsErrorMsg = errorResponse.detail;
+					emails.pop();
+					input = '';
+					return;
+				} else {
+					console.error('Error details:', errorResponse);
+					throw new Error(`Error code: ${response.status}`);
+				}
 			}
 
 			const data: any = await response.json();
-			const updaterVal: IConvo = {
-				conversation_name: chatName,
-				id: data.id
-			};
-			handleClick(updaterVal); // update ChatHeader and MessageContainer
+			handleClick(data.id); // update ChatHeader and MessageContainer
 
 			conversations.update((currConversations) => {
-				currConversations.set(data.id, { convoName: data.conversation_name });
+				currConversations.set(data.id, {
+					convoName: data.conversation_name,
+					isGroupChat: data.is_group_chat,
+					presignedUrl: data.presigned_url
+				});
 				return currConversations;
 			});
+
+			showModal = false;
+			emails = [];
+			input = '';
+			chatName = '';
+			emailsErrorMsg = '';
 		} catch (error) {
-			console.error('There was a problem with the fetch operation:', error);
+			console.error('Error creating chat:', error);
 			// Optionally handle the error (e.g., show an error message to the user)
 		}
-
-		showModal = false;
-		emails = [];
-		input = '';
-		chatName = '';
-		emailsErrorMsg = '';
 	}
 
 	function openModal(): void {
@@ -188,7 +282,7 @@
 	<div
 		on:click={closeModal}
 		transition:fade={{ duration: 250 }}
-		class="fixed left-0 top-0 bg-black bg-opacity-50 w-screen h-screen flex justify-center items-center"
+		class="fixed left-0 top-0 bg-black bg-opacity-50 w-screen h-screen flex justify-center items-center z-30"
 	>
 		<div
 			on:click|stopPropagation
@@ -197,27 +291,10 @@
 			<div class="flex text-lg font-bold justify-center">
 				<h1>Create New Chat</h1>
 			</div>
+
 			<!-- Implicitly awaits the async function -->
 			<form on:submit|preventDefault={handleCreateChat}>
-				<div class="flex flex-wrap items-center p-[5px] rounded gap-1">
-					<!-- <input
-						autofocus
-						required
-						type="text"
-						bind:value={peoples}
-						placeholder="Enter emails, separated by commas"
-						class="w-full"
-						/> -->
-
-					<!-- svelte-ignore a11y-autofocus -->
-					<input
-						autofocus
-						required
-						type="text"
-						class="w-full p-[5px] mb-2 border-none outline-none"
-						bind:value={chatName}
-						placeholder="Chat name"
-					/>
+				<div class="flex flex-wrap items-center p-[5px] rounded gap-3">
 					{#each emails as email}
 						<span class="bg-blue-500 text-white py-[5px] px-[10px] rounded-md flex items-center">
 							{email}
@@ -228,14 +305,27 @@
 							>
 						</span>
 					{/each}
+					<!-- svelte-ignore a11y-autofocus -->
 					<input
+						autofocus
 						type="text"
 						class="flex-grow border-none outline-none p-[5px]"
 						bind:value={input}
 						on:keydown={handleInput}
-						placeholder="User emails"
+						placeholder="User emails [Add with 'Enter' or 'Tab' or 'Comma']"
+					/>
+
+					<input
+						hidden={emails.length < 2}
+						required={emails.length >= 2}
+						type="text"
+						class="w-full p-[5px] border-none outline-none"
+						bind:value={chatName}
+						maxlength="255"
+						placeholder="Group chat name"
 					/>
 				</div>
+
 				{#if emailsErrorMsg}
 					<div
 						class="flex justify-center text-red-500 text-sm transition-opacity duration-300 ease-in-out"
@@ -244,10 +334,12 @@
 						{emailsErrorMsg}
 					</div>
 				{/if}
+
 				<div class="px-4 pt-3 sm:flex sm:flex-row-reverse sm:px-6">
 					<button
 						type="submit"
-						class="inline-flex w-full justify-center rounded-md bg-blue-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-350 sm:ml-3 sm:w-auto"
+						disabled={emails.length === 0 || (emails.length >= 2 && chatName.trim().length === 0)}
+						class="inline-flex w-full justify-center rounded-md bg-blue-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 sm:ml-3 sm:w-auto disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:opacity-30"
 						>Create</button
 					>
 					<button
@@ -264,22 +356,61 @@
 
 <!-- Sidebar for chats -->
 <aside
-	class="chats-sidebar min-w-fit md:min-w-[400px] max-w-[400px] overflow-y-auto overscroll-contain no-scrollbar"
+	class="chats-sidebar flex flex-col min-w-fit min-[1047px]:min-w-[400px] max-w-[400px] overflow-y-auto overscroll-contain no-scrollbar"
 >
 	<!-- Sidebar Header -->
-	<header class="chats-sidebar-header">
-		<div class="pl-4 w-[80%] h-[36px] hidden md:flex">
+	<header
+		class="flex flex-col min-[1047px]:flex-row items-center pt-1 min-[1047px]:pt-3 min-[1047px]:pb-1 gap-2 min-[1047px]:border-b-[1px] min-[1047px]:border-b-cyan-300"
+	>
+		<!-- <div class="pl-4 w-[80%] h-[36px] hidden min-[1047px]:flex">
 			<input
 				type="text"
 				placeholder="Search..."
 				class="w-full p-2 rounded-md border-solid border-blue-500 border focus:outline-none"
 			/>
-		</div>
+		</div> -->
+		<button
+			class="flex items-center group cursor-pointer justify-center min-[1047px]:justify-start"
+			on:click={openUserSettings}
+		>
+			<div class="min-[1047px]:ml-6 min-[1047px]:mr-4 my-2 w-14 h-14 rounded-full overflow-hidden">
+				{#if $currUser.presigned_url}
+					<img
+						src={$currUser.presigned_url}
+						alt="User Settings"
+						class="w-full transition-transform duration-400 ease-in-out group-hover:scale-110 group-hover:shadow-glow"
+					/>
+				{:else}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke-width="1.1"
+						stroke="currentColor"
+						class="w-full transition-transform duration-400 ease-in-out group-hover:scale-110 group-hover:shadow-glow"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+						/>
+					</svg>
+				{/if}
+			</div>
+			<h1
+				class="text-lg transition-transform duration-400 ease-in-out group-hover:scale-105 hidden min-[1047px]:flex"
+			>
+				{$currUser.first_name}
+				{$currUser.last_name}
+			</h1>
+		</button>
 
 		<!-- Create new chat button -->
-		<div class="flex justify-center w-full md:w-[20%] md:h-[36px]">
+		<div
+			class="flex justify-center w-full min-[1047px]:w-[20%] min-[1047px]:h-[36px] min-[1047px]:justify-end min-[1047px]:flex-grow min-[1047px]:mr-6"
+		>
 			<button
-				class="place-content-center text-blue-400"
+				class="place-content-center text-blue-600"
 				aria-label="New chat"
 				on:click|preventDefault={openModal}
 			>
@@ -287,19 +418,18 @@
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"
 					viewBox="0 0 24 24"
-					stroke-width="1.5"
+					stroke-width="1.3"
 					stroke="currentColor"
-					class="w-6 h-6 place-content-center"
+					class="w-8 h-8 place-content-center"
 				>
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
-						d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
+						d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
 					/>
 				</svg>
 			</button>
 		</div>
-		<!-- Using a plus sign for simplicity -->
 	</header>
 
 	<!-- Chat list -->
@@ -308,31 +438,56 @@
 			<Convo
 				{convoID}
 				chatName={convo.convoName}
-				isSelected={$selectedConvo?.id === convoID}
-				on:click={() => handleClick({ conversation_name: convo.convoName, id: convoID })}
+				isSelected={$selectedConvoID === convoID}
+				isGroupChat={convo.isGroupChat}
+				url={convo.presignedUrl}
+				on:click={() => handleClick(convoID)}
 			/>
 		{/each}
 	</ul>
+
+	<!-- Go to User Settings -->
+	<!-- <button
+		class="mt-auto flex items-center group border-t-2 border-t-gray-300 cursor-pointer justify-center min-[1047px]:justify-start"
+		on:click={openUserSettings}
+	>
+		<div class="min-[1047px]:ml-4 min-[1047px]:mr-3 my-2 w-12 h-12 rounded-full overflow-hidden">
+			{#if $currUser.presigned_url}
+				<img
+					src={$currUser.presigned_url}
+					alt="User Settings"
+					class="w-full transition-transform duration-400 ease-in-out group-hover:scale-110 group-hover:shadow-glow"
+				/>
+			{:else}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.1"
+					stroke="currentColor"
+					class="w-full transition-transform duration-400 ease-in-out group-hover:scale-110 group-hover:shadow-glow"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+					/>
+				</svg>
+			{/if}
+		</div>
+		<h1
+			class="text-lg transition-transform duration-400 ease-in-out group-hover:scale-105 hidden min-[1047px]:flex"
+		>
+			{$currUser.first_name}
+			{$currUser.last_name}
+		</h1>
+	</button> -->
 </aside>
 
 <style>
 	/* Set up the sidebar with a background color, text color, and padding */
 	.chats-sidebar {
 		border-right: 1px solid #ccc;
-		/* min-width: 25%; */
-	}
-
-	/* Style the sidebar header to display its children inline */
-	.chats-sidebar-header {
-		display: flex;
-		/* Use flexbox for layout */
-		/* justify-content: space-between; */
-		/* Space out the search bar and new chat button */
-		align-items: center;
-		/* Vertically center items in the header */
-
-		padding-top: 1rem;
-		padding-bottom: 0.2rem;
 	}
 
 	/* Add a hover effect for buttons */

@@ -6,7 +6,7 @@ export async function load({ cookies }) {
     if (token === undefined) throw redirect(302, "/login");
     
     // grab the current user from backend using the cookie
-    const response: Response = await fetch("http://localhost:8000/users/me", {
+    const response: Response = await fetch("http://localhost:8000/users/me/extra-info", {
         method: "GET",
         headers: {
             'Authorization': `Bearer ${token}`

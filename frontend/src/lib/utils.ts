@@ -1,10 +1,14 @@
+import { isToday, isYesterday, isThisWeek, getDay, format } from "date-fns";
+
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+
 export function getCurrentTime(): string {
-    const now = new Date();
-    return now.toLocaleTimeString('default', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
+    return new Date().toISOString();
+    // return now.toLocaleTimeString('default', {
+    //     hour: '2-digit',
+    //     minute: '2-digit',
+    //     hour12: false
+    // });
 }
 
 export function formatTime(sentAt: string): string {
@@ -16,4 +20,26 @@ export function formatTime(sentAt: string): string {
         minute: '2-digit',
         hour12: false // set to true for AM/PM format
     });
+}
+
+export function getDateSeparator(sentAt: string): string[] {
+    if (isToday(sentAt)) return [`Today`, formatTime(sentAt)];
+    if (isYesterday(sentAt)) return [`Yesterday`, formatTime(sentAt)];
+    if (isThisWeek(sentAt)) {
+        return [DAYS[getDay(sentAt)], formatTime(sentAt)];
+    }
+    
+    const formattedDate = format(sentAt, 'MMMM d, yyyy');
+    return [formattedDate, `at ${formatTime(sentAt)}`];
+}
+
+export function getMsgPreviewTimeValue(sentAt: string): string {
+    if (isToday(sentAt)) return formatTime(sentAt);
+    if (isYesterday(sentAt)) return `Yesterday`;
+    if (isThisWeek(sentAt)) {
+        return DAYS[getDay(sentAt)];
+    }
+    
+    const formattedDate = format(sentAt, 'P');
+    return formattedDate;
 }

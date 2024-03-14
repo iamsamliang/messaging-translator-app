@@ -42,7 +42,8 @@
 body {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    font-family: Arial, sans-serif;
+    /* font-family: Arial, sans-serif; */
+    @apply font-sans;
     background-color: white;
 }
 

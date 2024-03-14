@@ -18,7 +18,7 @@ from app.core.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
     app.state.redis_client = redis.Redis(
-        host="localhost", port=6379, decode_responses=True
+        host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True
     )
     # redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
     yield

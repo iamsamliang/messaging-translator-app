@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
-from typing import Annotated, TYPE_CHECKING
+from pydantic import BaseModel, StringConstraints
+from typing import Annotated
 from datetime import datetime
 
 # if TYPE_CHECKING:

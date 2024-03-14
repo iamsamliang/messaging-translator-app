@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { getCurrentTime } from '$lib/utils';
+	import { getCurrentTime, formatTime } from '$lib/utils';
 	import { sendMessageSocket } from '$lib/websocket';
-	import { conversations, latestMessages, messages, selectedConvo } from '$lib/stores/stores';
+	import { conversations, latestMessages, messages, selectedConvoID } from '$lib/stores/stores';
 	import type { MessageCreate } from '$lib/interfaces/CreateModels.interface';
 	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
+	import type { Conversation } from '$lib/interfaces/ResponseModels.interface';
+	import { differenceInHours } from 'date-fns';
 
 	let inputValue: string = '';
 	let textArea: HTMLTextAreaElement;
@@ -11,8 +13,7 @@
 
 	export let senderID: number;
 	export let userLang: string;
-	export let firstName: string;
-	export let lastName: string;
+	export let userName: string;
 
 	function resizeTextArea() {
 		textArea.style.height = 'auto'; // Temporarily shrink to content size
@@ -34,27 +35,52 @@
 	// Send the message to the server over websockets
 	function sendMessage(): void {
 		const message: string = inputValue.trim();
+		const currConvoID: number = $selectedConvoID;
 
-		if (validateMessage(message) && $selectedConvo) {
-			// use this for immediate display first
+		if (validateMessage(message) && $selectedConvoID !== -10) {
 			const newMessage: MessageCreate = {
 				original_text: message,
 				sender_id: senderID,
-				conversation_id: $selectedConvo.id,
-				conversation_name: $selectedConvo.conversation_name,
+				conversation_id: currConvoID,
 				orig_language: userLang,
 				sent_at: getCurrentTime(),
-				first_name: firstName,
-				last_name: lastName
+				sender_name: userName
 			};
-			messages.update((m) => [...m, newMessage]);
+			// messages.update((m) => [...m, newMessage]);
+
+			// use this for immediate display first
+			messages.update((m) => {
+				const msgLen = m.length;
+				const arePrevMsgs = msgLen > 0;
+				const sameSenderAsPrev = m[msgLen - 1].sender_id === senderID;
+				const within2Hours = differenceInHours(newMessage.sent_at, m[msgLen - 1].sent_at) < 2;
+
+				if (arePrevMsgs && sameSenderAsPrev && within2Hours) m[msgLen - 1].display_photo = false;
+
+				const formattedMsg: MessageCreate = {
+					conversation_id: currConvoID,
+					sender_id: senderID,
+					original_text: message,
+					orig_language: userLang,
+					sent_at: newMessage.sent_at,
+					sender_name: null,
+					display_photo: true
+				};
+
+				m = [...m, formattedMsg];
+
+				return m;
+			});
 
 			// When we send a msg, the corresponding conversation must be put at top of list
 			conversations.update((currConversations) => {
-				if (currConversations.has($selectedConvo.id)) {
-					currConversations.delete($selectedConvo.id);
-				}
-				currConversations.set($selectedConvo.id, { convoName: $selectedConvo.conversation_name });
+				// Retrieve the current conversation object
+				const oldConvo = currConversations.get(currConvoID) as Conversation;
+
+				// needed so the conversation is put at the top
+				currConversations.delete(currConvoID);
+
+				currConversations.set(currConvoID, oldConvo);
 
 				return currConversations;
 			});
@@ -62,7 +88,7 @@
 			// sender using websocket.onmessage
 			const newMessageInfo: LatestMessageInfo = {
 				text: message,
-				time: newMessage.sent_at, // Format this time as needed
+				time: formatTime(newMessage.sent_at), // Format this time as needed
 				isRead: 1,
 				translationID: -1
 			};
@@ -74,6 +100,7 @@
 			sendMessageSocket(newMessage); // send message to server
 
 			inputValue = '';
+			textArea.style.height = 'auto';
 		} else {
 			alert('Please enter a message!');
 		}
@@ -81,10 +108,10 @@
 </script>
 
 <!-- Individual Chat Footer for Sending Message -->
-{#if $selectedConvo}
+{#if $selectedConvoID !== -10}
 	<footer>
 		<form
-			class="flex p-[10px] bg-white border-t border-solid border-gray-200"
+			class="flex px-[10px] pb-[11px] pt-[14px] bg-white border-t border-solid border-gray-200"
 			on:submit|preventDefault={sendMessage}
 		>
 			<!-- <input
@@ -98,31 +125,16 @@
 				bind:value={inputValue}
 				placeholder="Write a message..."
 				rows="1"
-				class="flex-grow resize-none border-solid border border-blue-300 rounded-xl py-[5px] px-[10px] mr-[10px] focus:outline-none max-h-[calc(3em*5)] no-scrollbar"
+				class="flex-grow resize-none border-solid border border-blue-300 rounded-xl py-[6px] px-[10px] mr-[10px] focus:outline-none max-h-[calc(3em*5)] no-scrollbar"
 				on:input={resizeTextArea}
 				on:keydown={handleKeyPress}
 			></textarea>
 			<button
 				bind:this={button}
 				type="submit"
-				class="send-message"
+				class="bg-blue-600 text-white border-none py-1 px-5 rounded-full hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:opacity-30 h-fit mt-auto"
 				disabled={inputValue.trim().length === 0}>Send</button
 			>
 		</form>
 	</footer>
 {/if}
-
-<style>
-	button:hover {
-		opacity: 0.9; /* Slightly transparent on hover */
-	}
-
-	.send-message {
-		background-color: #007bff;
-		color: white;
-		border: none;
-		border-radius: 18px;
-		padding: 5px 15px;
-		cursor: pointer;
-	}
-</style>

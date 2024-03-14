@@ -20,8 +20,7 @@
 							href="/chat"
 							class="font-semibold border-none cursor-pointer text-white-700 hover:text-blue-100 transition"
 						>
-							Chat Now, {data.user.first_name.charAt(0).toUpperCase() +
-								data.user.first_name.slice(1)}
+							Your Chats
 						</a>
 						<a
 							href="/logout"
@@ -79,8 +78,13 @@
 									<a
 										href="/login"
 										class="text-lg bg-white font-semibold px-6 py-4 rounded-full hover:bg-blue-200 transition"
-										>Start Chatting Now</a
 									>
+										{#if data.user}
+											Chat Now, {data.user.first_name}
+										{:else}
+											Start Chatting Now
+										{/if}
+									</a>
 								</div>
 							</div>
 						</div>

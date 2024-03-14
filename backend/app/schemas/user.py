@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, ConfigDict, StringConstraints
-from typing import Annotated, TYPE_CHECKING
+from pydantic import BaseModel, EmailStr, StringConstraints
+from typing import Annotated
+
 from datetime import datetime
 
 # if TYPE_CHECKING:
@@ -17,14 +18,15 @@ class UserBase(BaseModel):
     last_name: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
     ]
-    profile_photo: Annotated[
-        str, StringConstraints(strip_whitespace=True, max_length=255)
-    ] = "test"
+    profile_photo: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
+    ) = None
     email: EmailStr
     target_language: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
     ]
     is_admin: bool = False
+    api_key: Annotated[str, StringConstraints(strip_whitespace=True, max_length=255)]
 
 
 class UserCreate(UserBase):
@@ -36,21 +38,34 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Input Schema for function User.Update"""
 
-    first_name: Annotated[
-        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None = None
-    last_name: Annotated[
-        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None = None
-    profile_photo: Annotated[
-        str, StringConstraints(strip_whitespace=True, max_length=255)
-    ] | None = None
+    first_name: (
+        Annotated[
+            str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
+        ]
+        | None
+    ) = None
+    last_name: (
+        Annotated[
+            str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
+        ]
+        | None
+    ) = None
+    profile_photo: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
+    ) = None
     email: EmailStr | None = None
-    target_language: Annotated[
-        str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
-    ] | None = None
+    target_language: (
+        Annotated[
+            str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
+        ]
+        | None
+    ) = None
     is_admin: bool | None = None
     password: str | None = None
+    pwd_changed: datetime | None = None
+    api_key: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=255)] | None
+    ) = None
 
 
 # class UserInDB(UserBase):
