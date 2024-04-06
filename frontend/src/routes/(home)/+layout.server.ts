@@ -16,5 +16,5 @@ export async function load({ cookies }) {
 
     if (!response.ok) return;
     
-    throw redirect(303, "/chat")
+    redirect(303, "/chat");
 }

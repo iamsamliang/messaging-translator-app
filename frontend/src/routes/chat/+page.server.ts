@@ -4,7 +4,7 @@ import serverSettings from '$lib/config/config.server.js';
 export async function load({ cookies }) {
     const token: string | undefined = cookies.get("jwt");
 
-    if (token === undefined) throw redirect(303, "/login");
+    if (token === undefined) redirect(303, "/login");
     
     // grab the current user from backend using the cookie
     const response: Response = await fetch(`${serverSettings.apiBaseURL}/users/me/extra-info`, {
@@ -14,7 +14,7 @@ export async function load({ cookies }) {
         }
     });
 
-    if (!response.ok) throw redirect(303, "/login");
+    if (!response.ok) redirect(303, "/login");
     
     const user = await response.json();
 

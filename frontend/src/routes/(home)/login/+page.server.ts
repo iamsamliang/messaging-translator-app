@@ -62,6 +62,6 @@ export const actions = {
             });
         }
 
-        throw redirect(303, "/chat")
+        redirect(303, "/chat");
     }
 };

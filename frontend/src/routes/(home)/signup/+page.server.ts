@@ -92,6 +92,6 @@ export const actions = {
             });
         }
 
-        throw redirect(303, '/signup/confirmation');
+        redirect(303, '/signup/confirmation');
     }
 }

@@ -5,9 +5,9 @@ export async function load({ url, fetch }) {
     const token = url.searchParams.get("token");
 
     if (!token) {
-		throw error(404, {
-			message: 'Invalid Permissions.'
-		});
+		error(404, {
+        			message: 'Invalid Permissions.'
+        		});
     }
 
     const response: Response = await fetch(`${clientSettings.apiBaseURL}/users/verify-account`, {
@@ -20,9 +20,9 @@ export async function load({ url, fetch }) {
 
     if (!response.ok) {
         const errorResponse = await response.json();
-        throw error(400, {
-            message: errorResponse.detail
-        });
+        error(400, {
+                    message: errorResponse.detail
+                });
     }
 
     const success = await response.json();

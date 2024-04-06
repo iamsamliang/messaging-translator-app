@@ -28,6 +28,6 @@ export const actions = {
         cookies.delete("jwt", { path: "/" });
 
         // to prevent the browser asking to resubmit the form when refreshing page
-        throw redirect(303, '/');
+        redirect(303, '/');
     }
 };
