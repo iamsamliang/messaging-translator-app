@@ -15,6 +15,22 @@ from app.tests.utils.utils import random_string
 
 
 @pytest.mark.anyio
+async def test_create_one_user(faker: Faker) -> None:
+    # base_url isn't used but needed to work
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        data = {
+            "first_name": "John",
+            "last_name": "Smith",
+            "api_key": "abcd123",
+            "email": faker.email(),
+            "target_language": "english",
+            "password": faker.password(),
+        }
+        response = await ac.post("/users", json=data)
+        assert response.status_code == 201
+
+
+@pytest.mark.anyio
 async def test_concurrent_create_users(db: AsyncSession, faker: Faker) -> None:
     # base_url isn't used but needed to work
     async with AsyncClient(app=app, base_url="http://test") as ac:

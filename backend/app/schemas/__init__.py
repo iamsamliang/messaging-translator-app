@@ -9,7 +9,7 @@ from .conversation import (
 )
 from .translation import TranslationCreate, TranslationUpdate
 
-from .token import TokenPayLoad, TokenOut
+from .token import TokenPayLoad, TokenOut, VerificationPayLoad
 
 from .aws import (
     S3PreSignedURLPOSTRequest,
@@ -26,6 +26,7 @@ from .responses import (
     TranslationResponse,
     MembersOut,
     GetMembersResponse,
+    ExistingConversationResponse,
 )
 
 # Pydantic Models

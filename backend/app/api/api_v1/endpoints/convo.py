@@ -1,9 +1,14 @@
+import asyncio
 import json
 
-from typing import Annotated
-from app.utils.convo import convo_name_url_processing
+from typing import Annotated, Sequence
+from app.crud import crud_association
+from app.utils.convo import (
+    convo_latest_msg_processing,
+    convo_name_url_processing,
+    generate_convo_identifier,
+)
 from fastapi import APIRouter, HTTPException, Request, status, Response, Depends
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from redis.asyncio import Redis
 from botocore.exceptions import ClientError, TokenRetrievalError, NoCredentialsError
@@ -45,41 +50,11 @@ async def get_convo(
     if get_latest_msg and convo.latest_message_id:
         convo_latest_msg = await crud.message.get(db=db, id=convo.latest_message_id)
 
-        translations = await db.execute(
-            select(
-                models.Translation.translation,
-                models.Translation.id,
-                models.Translation.is_read,
-            ).where(
-                models.Translation.message_id == convo.latest_message_id,
-                models.Translation.target_user_id == current_user.id,
-            )
-        )
-
-        # translations = translation.all()
-        translation = translations.first()
-
-        if translation:
-            setattr(
-                convo_latest_msg,
-                "relevant_translation",
-                translation.translation,
-            )
-            setattr(
-                convo_latest_msg,
-                "translation_id",
-                translation.id,
-            )
-            setattr(
-                convo_latest_msg,
-                "is_read",
-                translation.is_read,
-            )
-
-        setattr(
-            convo,
-            "latest_message",
-            convo_latest_msg,
+        await convo_latest_msg_processing(
+            db=db,
+            convo=convo,
+            curr_user_id=current_user.id,
+            convo_latest_msg=convo_latest_msg,  # type: ignore
         )
 
     redis_client: Redis = request.app.state.redis_client
@@ -91,11 +66,43 @@ async def get_convo(
     return convo
 
 
+@router.get("", response_model=list[schemas.ConversationResponse])
+async def get_convos(
+    db: DatabaseDep,
+    current_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
+    offset: int,
+    limit: int,
+    request: Request,
+) -> Sequence[models.Conversation]:
+    convos = await crud.conversation.get_user_convos(
+        db=db, user_id=current_user.id, offset=offset, limit=limit
+    )
+
+    redis_client: Redis = request.app.state.redis_client
+
+    for convo in convos:
+        if convo.latest_message_id:
+            convo_latest_msg = await crud.message.get(db=db, id=convo.latest_message_id)
+
+            await convo_latest_msg_processing(
+                db=db,
+                convo=convo,
+                curr_user_id=current_user.id,
+                convo_latest_msg=convo_latest_msg,  # type: ignore
+            )
+
+        await convo_name_url_processing(
+            convo=convo, curr_user_id=current_user.id, redis_client=redis_client
+        )
+
+    return convos
+
+
 @router.get("/{conversation_id}/members", response_model=schemas.GetMembersResponse)
 async def get_members(
     db: DatabaseDep,
     conversation_id: int,
-    current_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
+    _unused_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
     request: Request,
 ) -> dict[str, dict[int, models.User] | list[int] | bool | str | None]:
     convo = await crud.conversation.get(db=db, id=conversation_id)
@@ -125,7 +132,7 @@ async def get_members(
 
             if not gc_url:
                 gc_url = await generate_presigned_get_url(
-                    bucket_name="translation-messaging-bucket",
+                    bucket_name=settings.S3_BUCKET_NAME,
                     object_key=convo.conversation_photo,
                     expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
                     redis_client=redis_client,
@@ -145,7 +152,7 @@ async def get_members(
 
                 if not url:
                     url = await generate_presigned_get_url(
-                        bucket_name="translation-messaging-bucket",
+                        bucket_name=settings.S3_BUCKET_NAME,
                         object_key=member.profile_photo,
                         expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
                         redis_client=redis_client,
@@ -187,35 +194,80 @@ async def create_convo(
     curr_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
 ) -> models.Conversation:
     try:
-        new_convo = await crud.conversation.create(
-            db=db,
-            obj_in=schemas.ConversationCreateDB(
-                conversation_name=request.conversation_name,
-                is_group_chat=request.is_group_chat,
-            ),
-        )
-        await db.flush()
-
-        members = await new_convo.awaitable_attrs.members
         user_emails: set[str] = set()
-        redis_client: Redis = req.app.state.redis_client
+        user_ids: list[int] = []
 
         for email in request.user_ids:
             if email not in user_emails:
                 user_emails.add(email)
                 user = await crud.user.get_by_email(db=db, email=email)
                 if not user:
-                    await db.rollback()
+                    # await db.rollback()
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"User w/ email {email} doesn't exist",
                     )
-                members.append(user)
-                # let others know a new channel is being created so they subscribe to it
-                await redis_client.publish(
-                    f"{user.id}",
+                user_ids.append(user.id)
+
+        convo_identifier = generate_convo_identifier(user_ids=user_ids)
+
+        # if convo_identifier already exists in convo table, return convo
+        existing_convo = await crud.conversation.get_convo_by_identifier(
+            db=db, convo_identifier=convo_identifier
+        )
+        redis_client: Redis = req.app.state.redis_client
+        if existing_convo:
+            await convo_name_url_processing(
+                convo=existing_convo,
+                curr_user_id=curr_user.id,
+                redis_client=redis_client,
+            )
+            return existing_convo
+
+        # create a new convo
+        new_convo = await crud.conversation.create(
+            db=db,
+            obj_in=schemas.ConversationCreateDB(
+                conversation_name=request.conversation_name,
+                is_group_chat=request.is_group_chat,
+                chat_identifier=convo_identifier,
+            ),
+        )
+        await db.flush()
+
+        member_associations = []
+        pub_messages = []
+
+        for user_id in user_ids:
+            member_associations.append(
+                {"user_id": user_id, "conversation_id": new_convo.id}
+            )
+            pub_messages.append(
+                (
+                    f"{user_id}",
                     json.dumps({"type": "create_convo", "convo_id": new_convo.id}),
                 )
+            )
+
+        await crud_association.associate_users_to_convo(
+            db=db, member_associations=member_associations
+        )
+
+        await asyncio.gather(
+            *(
+                redis_client.publish(channel, message)
+                for channel, message in pub_messages
+            )
+        )
+
+        # for user in users:
+        #     members.append(user)
+        #     # let others know a new channel is being created so they subscribe to it
+        #     await redis_client.publish(
+        #         f"{user.id}",
+        #         json.dumps({"type": "create_convo", "convo_id": new_convo.id}),
+        #     )
+
         # note this needs to be here for the group_member table to update
         await db.commit()
 
@@ -263,7 +315,7 @@ async def update_convo(
             }
         elif request.conversation_photo:
             presigned_url = await generate_presigned_get_url(
-                bucket_name="translation-messaging-bucket",
+                bucket_name=settings.S3_BUCKET_NAME,
                 object_key=request.conversation_photo,
                 expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
                 redis_client=redis_client,
@@ -308,81 +360,105 @@ async def update_convo_users(
 ) -> None:
     user_emails: set[str] = set()
     users: list[models.User] = []
-    for user_email in request.user_ids:
-        if user_email not in user_emails:
-            user_emails.add(user_email)
-            user = await crud.user.get_by_email(db=db, email=user_email)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"User w/ email {user_email} doesn't exist",
-                )
-            users.append(user)
 
-    redis_client: Redis = req.app.state.redis_client
-    try:
-        res = await crud.conversation.update_users(
-            db=db,
-            convo_id=convo_id,
-            users=users,
-            method=request.method,
-            redis=redis_client,
-            sorted_curr_ids=request.sorted_ids,
-        )
-        if not res:
+    if request.method == schemas.conversation.Method.ADD:
+        for user_email in request.user_ids:
+            if user_email not in user_emails:
+                user = await crud.user.get_by_email(db=db, email=user_email)
+                if not user:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"User w/ email {user_email} doesn't exist",
+                    )
+                user_emails.add(user_email)
+
+                if not (
+                    await crud.conversation.is_user_in_conversation(
+                        db=db, user_id=user.id, conversation_id=convo_id
+                    )
+                ):
+                    users.append(user)
+    # can only delete one user at a time
+    else:
+        user_email = request.user_ids[0]
+        user = await crud.user.get_by_email(db=db, email=user_email)
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Conversation {convo_id} (ID) doesn't exist",
+                detail=f"User w/ email {user_email} doesn't exist",
             )
-        # await db.commit()
 
-        # convo_members = await res.awaitable_attrs.members
+        if await crud.conversation.is_user_in_conversation(
+            db=db, user_id=user.id, conversation_id=convo_id
+        ):
+            users.append(user)
 
-        # if request.method == schemas.conversation.Method.ADD:
-        #     members_dict = {}
-        #     sorted_curr_ids = request.sorted_ids
-        #     if sorted_curr_ids is None:
-        #         raise HTTPException(
-        #             status_code=status.HTTP_400_BAD_REQUEST,
-        #             detail=f"Missing sorted user IDs",
-        #         )
+    try:
+        if users:
+            redis_client: Redis = req.app.state.redis_client
+            res = await crud.conversation.update_users(
+                db=db,
+                convo_id=convo_id,
+                users=users,
+                method=request.method,
+                redis=redis_client,
+                sorted_curr_ids=request.sorted_ids,
+            )
+            if not res:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Conversation {convo_id} (ID) doesn't exist",
+                )
+            # await db.commit()
 
-        #     for added_user in users:
-        #         sorted_curr_ids.append(added_user.id)
+            # convo_members = await res.awaitable_attrs.members
 
-        #         url = None
+            # if request.method == schemas.conversation.Method.ADD:
+            #     members_dict = {}
+            #     sorted_curr_ids = request.sorted_ids
+            #     if sorted_curr_ids is None:
+            #         raise HTTPException(
+            #             status_code=status.HTTP_400_BAD_REQUEST,
+            #             detail=f"Missing sorted user IDs",
+            #         )
 
-        #         if added_user.profile_photo:
-        #             _, url = await get_cached_presigned_obj(
-        #                 object_key=added_user.profile_photo,
-        #                 redis_client=redis_client,
-        #                 method=CacheMethod.GET,
-        #             )
+            #     for added_user in users:
+            #         sorted_curr_ids.append(added_user.id)
 
-        #             if not url:
-        #                 url = await generate_presigned_get_url(
-        #                     bucket_name="translation-messaging-bucket",
-        #                     object_key=added_user.profile_photo,
-        #                     expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
-        #                     redis_client=redis_client,
-        #                 )
+            #         url = None
 
-        #         setattr(
-        #             added_user,
-        #             "presigned_url",
-        #             url,
-        #         )
+            #         if added_user.profile_photo:
+            #             _, url = await get_cached_presigned_obj(
+            #                 object_key=added_user.profile_photo,
+            #                 redis_client=redis_client,
+            #                 method=CacheMethod.GET,
+            #             )
 
-        #         members_dict[added_user.id] = added_user
+            #             if not url:
+            #                 url = await generate_presigned_get_url(
+            #                     bucket_name=settings.S3_BUCKET_NAME,
+            #                     object_key=added_user.profile_photo,
+            #                     expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
+            #                     redis_client=redis_client,
+            #                 )
 
-        #     await db.commit()
+            #         setattr(
+            #             added_user,
+            #             "presigned_url",
+            #             url,
+            #         )
 
-        #     return {
-        #         "members": members_dict,
-        #         "sorted_member_ids": sorted_curr_ids,
-        #     }
+            #         members_dict[added_user.id] = added_user
 
-        await db.commit()
+            #     await db.commit()
+
+            #     return {
+            #         "members": members_dict,
+            #         "sorted_member_ids": sorted_curr_ids,
+            #     }
+
+            await db.commit()
+
         return None
 
     except TokenRetrievalError as e:

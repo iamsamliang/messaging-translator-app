@@ -1,7 +1,9 @@
 from typing import Annotated
-from pydantic import ConfigDict, BaseModel, StringConstraints, EmailStr, field_validator
+from pydantic import ConfigDict, BaseModel, StringConstraints, field_validator
 from datetime import datetime
 from pydantic.functional_serializers import PlainSerializer
+
+from app.schemas.email_type import CustomEmailStr
 
 
 class TranslationResponse(BaseModel):
@@ -9,8 +11,9 @@ class TranslationResponse(BaseModel):
 
 
 class UserCreateOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    # model_config = ConfigDict(from_attributes=True)
     id: int
+    cookie_expire_secs: int
 
 
 class MembersOut(BaseModel):
@@ -22,7 +25,7 @@ class MembersOut(BaseModel):
     profile_photo: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
     )
-    email: EmailStr
+    email: CustomEmailStr
     target_language: Annotated[str, StringConstraints(strip_whitespace=True)]
     is_admin: bool
     presigned_url: str | None
@@ -39,7 +42,7 @@ class UserOut(BaseModel):
     profile_photo: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
     )
-    email: EmailStr
+    email: CustomEmailStr
     target_language: Annotated[str, StringConstraints(strip_whitespace=True)]
     is_admin: bool
     created_at: datetime
@@ -52,7 +55,7 @@ class UserOut(BaseModel):
 
 class UserOutExtraInfo(UserOut):
     presigned_url: str | None
-    conversations: list["ConversationResponse"]
+    top_n_convos: list["ConversationResponse"]
 
 
 class MessageResponse(BaseModel):
@@ -62,7 +65,6 @@ class MessageResponse(BaseModel):
 
     conversation_id: int
     sender_id: int
-    # receiver_id: int
     original_text: str
     orig_language: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
@@ -100,6 +102,10 @@ class LatestMessageResponse(BaseModel):
     is_read: int | None = None
 
 
+class ExistingConversationResponse(BaseModel):
+    existing_id: int
+
+
 class ConversationResponse(BaseModel):
     """Output Schema for any function returning Conversation object"""
 
@@ -107,7 +113,7 @@ class ConversationResponse(BaseModel):
 
     id: int
 
-    conversation_name: Annotated[str, StringConstraints(max_length=255)] | None
+    conversation_name: Annotated[str, StringConstraints(max_length=255)]
     latest_message: LatestMessageResponse | None = None
 
     is_group_chat: bool

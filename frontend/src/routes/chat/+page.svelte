@@ -17,20 +17,45 @@
 	import { getMsgPreviewTimeValue } from '$lib/utils';
 	import type { S3PreSignedURLPOSTRequest } from '$lib/interfaces/CreateModels.interface';
 	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
-	import type { Conversation } from '$lib/interfaces/ResponseModels.interface';
+	import type {
+		Conversation,
+		ConversationResponse
+	} from '$lib/interfaces/ResponseModels.interface';
 	import InfoSidebar from './InfoSidebar.svelte';
 	import { languages } from '$lib/languages';
-
-	////
-
+	import clientSettings from '$lib/config/config.client';
 	import Cropper from 'cropperjs';
 	import 'cropperjs/dist/cropper.css';
 	import { goto } from '$app/navigation';
 	import LoadingIcon from '$lib/components/LoadingIcon.svelte';
 	import { uploadImageToS3 } from '$lib/aws';
+	import toast, { Toaster } from 'svelte-french-toast';
+	import { websocketNotifStore } from '$lib/stores/websocketNotification';
 
 	export let data;
 
+	// For use to signal when MessageContainer scrolls to the bottom when user clicks a conversation and loads messages
+	let msgContainerScrollSignal = false;
+	function signalMsgContainerScrollBottom() {
+		msgContainerScrollSignal = true;
+	}
+	function unsignalMsgContainerScrollBottom() {
+		msgContainerScrollSignal = false;
+	}
+	//
+
+	// For use to signal when ConvoSidebar scrolls to top and MessageContainer scrolls to the bottom when user sends a msg
+	let convoSidebarScrollSignal = false;
+	function signalConvoSidebarMsgContainerScroll() {
+		convoSidebarScrollSignal = true; // scroll top
+		msgContainerScrollSignal = true; // scroll bottom
+	}
+	function unsignalConvoSidebarScrollTop() {
+		convoSidebarScrollSignal = false;
+	}
+	//
+
+	// This block of code enables cropping of user's uploaded profile picture for updating profile
 	let cropper: Cropper | null;
 	let croppedCanvas: HTMLCanvasElement | null;
 	let avatarUrl = data.user.presigned_url; // store current profile pic
@@ -104,6 +129,13 @@
 		}
 	}
 
+	function closeModal(): void {
+		showCropModal = false;
+		destroyCropper();
+	}
+	//
+
+	// This function handles logic for updating a user's profile
 	async function handleProfileUpdate(): Promise<void> {
 		function canvasToBlobPromise(
 			canvas: HTMLCanvasElement,
@@ -150,7 +182,7 @@
 					};
 
 					const getPresigned: Response = await fetch(
-						`http://localhost:8000/aws/s3/generate-presigned-post/${false}`,
+						`${clientSettings.apiBaseURL}/aws/s3/generate-presigned-post/${false}`,
 						{
 							method: 'POST',
 							headers: {
@@ -220,7 +252,7 @@
 				formData.append('language', formDefaults.target_language);
 			if (apiKey.trim()) formData.append('apiKey', apiKey.trim());
 
-			const response: Response = await fetch(`http://localhost:8000/users/update`, {
+			const response: Response = await fetch(`${clientSettings.apiBaseURL}/users/update`, {
 				method: 'PATCH',
 				credentials: 'include',
 				body: formData
@@ -261,14 +293,9 @@
 			isLoading = false;
 		}
 	}
+	//
 
-	function closeModal(): void {
-		showCropModal = false;
-		destroyCropper();
-	}
-
-	////
-
+	// This chunk of code handles the form UI and form input logic (no submitting when no updated values, resetting the form, etc)
 	let formDefaults = { ...data.user };
 	let formPassword = '';
 	let apiKey = '';
@@ -304,19 +331,24 @@
 		formErrorMsg = '';
 		formSuccessMsg = '';
 	}
+	//
 
+	// This chunk of code sets the value of stores to be used in other components when a user first enters the chat page
 	latestMessages.set(
-		data.user.conversations.reduce((acc: Record<number, LatestMessageInfo>, conversation: any) => {
-			if (conversation.latest_message && conversation.latest_message.relevant_translation) {
-				acc[conversation.id] = {
-					text: conversation.latest_message.relevant_translation,
-					time: getMsgPreviewTimeValue(conversation.latest_message.sent_at),
-					isRead: conversation.latest_message.is_read,
-					translationID: conversation.latest_message.translation_id
-				};
-			}
-			return acc;
-		}, {})
+		data.user.top_n_convos.reduce(
+			(acc: Record<number, LatestMessageInfo>, conversation: ConversationResponse) => {
+				if (conversation.latest_message && conversation.latest_message.relevant_translation) {
+					acc[conversation.id] = {
+						text: conversation.latest_message.relevant_translation,
+						time: getMsgPreviewTimeValue(conversation.latest_message.sent_at),
+						isRead: conversation.latest_message.is_read as number,
+						translationID: conversation.latest_message.translation_id as number
+					};
+				}
+				return acc;
+			},
+			{}
+		)
 	);
 
 	currUser.set({
@@ -331,17 +363,31 @@
 	});
 
 	conversations.set(
-		data.user.conversations.reduce((acc: Map<number, Conversation>, conversation: any) => {
-			acc.set(conversation.id, {
-				convoName: conversation.conversation_name,
-				isGroupChat: conversation.is_group_chat,
-				presignedUrl: conversation.presigned_url
-			});
-			return acc;
-		}, new Map())
+		data.user.top_n_convos.reduce(
+			(acc: Map<number, Conversation>, conversation: ConversationResponse) => {
+				acc.set(conversation.id, {
+					convoName: conversation.conversation_name,
+					isGroupChat: conversation.is_group_chat,
+					presignedUrl: conversation.presigned_url
+				});
+				return acc;
+			},
+			new Map()
+		)
 	);
+	//
+
+	// Toast notifications for Websocket errors and notifications
+	$: if ($websocketNotifStore.visible) {
+		toast.error($websocketNotifStore.message, {
+			duration: 5000
+		});
+		websocketNotifStore.reset();
+	}
+	//
 
 	onMount(() => {
+		toast.remove();
 		connectWebSocket();
 	});
 
@@ -354,22 +400,36 @@
 	});
 </script>
 
-<main class="messaging-app">
+<Toaster />
+
+<main class="messaging-app bg-neutral-900">
 	<!-- Conversations List -->
-	<ConvoSidebar currEmail={data.user.email} />
+	<ConvoSidebar
+		currEmail={data.user.email}
+		scrollSignal={convoSidebarScrollSignal}
+		on:initMsgFetch={signalMsgContainerScrollBottom}
+		on:scrolledTop={unsignalConvoSidebarScrollTop}
+	/>
 
 	<!-- Actual Chat Area -->
 	{#if $selectedConvoID !== -10}
 		<section class="chat-area w-full max-w-full min-w-0">
 			<ChatHeader />
-			<MessagesContainer currUserID={data.user.id} />
+			<MessagesContainer
+				currUserID={data.user.id}
+				scrollBottomSignal={msgContainerScrollSignal}
+				on:scrolledBottom={unsignalMsgContainerScrollBottom}
+			/>
 			<ChatInput
 				senderID={data.user.id}
 				userLang={data.user.target_language}
 				userName={`${data.user.first_name} ${data.user.last_name}`}
+				on:msgSent={signalConvoSidebarMsgContainerScroll}
 			/>
 		</section>
+		<!-- Update User Profile Section -->
 	{:else if $isUserSettings}
+		<!-- Modal for Cropping Uploaded Profile Pic -->
 		{#if showCropModal}
 			<!-- New -->
 			<!-- <div
@@ -461,21 +521,24 @@
 			</div>
 		{/if}
 
-		<section class="space-y-6 px-10 pt-8 w-full overflow-scroll">
+		<!-- User Profile Update Form UI -->
+		<section
+			class="space-y-6 px-4 pt-4 min-[400px]:px-10 min-[400px]:pt-8 w-full overflow-scroll pb-4 min-[450px]:pb-0 bg-neutral-950 text-white"
+		>
 			<div class="space-y-1">
 				<h2 class="text-2xl font-bold tracking-tight">Settings</h2>
-				<p class="text-gray-600">Manage your account settings.</p>
+				<p class="text-neutral-300">Manage your account settings.</p>
 			</div>
-			<hr class="border-t border-gray-500" />
+			<hr class="border-t border-neutral-500" />
 			<form
-				class="rounded-xl px-8 pb-5 space-y-5"
+				class="rounded-xl min-[450px]:px-8 min-[450px]:pb-5 space-y-5"
 				on:submit|preventDefault={handleProfileUpdate}
 				on:input={clearFormMessages}
 			>
 				<div class="flex flex-col justify-center items-center mb-7">
 					<label
 						for="profilePhoto"
-						class="relative overflow-hidden rounded-full w-52 group cursor-pointer"
+						class="relative overflow-hidden rounded-full w-11/12 min-[450px]:w-52 group cursor-pointer"
 					>
 						{#if avatarUrl}
 							<img
@@ -500,7 +563,7 @@
 							</svg>
 						{/if}
 						<span
-							class="absolute inset-0 flex justify-center items-center opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100 text-white text-center text-[0.8rem] bg-black bg-opacity-70"
+							class="absolute inset-0 flex justify-center items-center opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100 text-white text-center text-[0.8rem] bg-black bg-opacity-20"
 							>Upload Profile Picture (JPG only)</span
 						>
 					</label>
@@ -514,8 +577,8 @@
 					/>
 				</div>
 
-				<div class="flex gap-2">
-					<div class="w-1/2 space-y-2">
+				<div class="flex flex-col sm:flex-row gap-2">
+					<div class="sm:w-1/2 space-y-2">
 						<label for="firstname" class="block text-sm font-bold"> First Name </label>
 						<input
 							bind:value={formDefaults.first_name}
@@ -523,10 +586,10 @@
 							name="firstName"
 							id="firstname"
 							maxlength="100"
-							class="border border-gray-500 rounded w-full py-2 px-3 leading-tight focus:outline-none text-black"
+							class="border border-neutral-700 rounded w-full py-2 px-3 leading-tight focus:outline-none bg-neutral-950"
 						/>
 					</div>
-					<div class="w-1/2 space-y-2">
+					<div class="sm:w-1/2 space-y-2">
 						<label for="lastname" class="block text-sm font-bold"> Last Name </label>
 						<input
 							bind:value={formDefaults.last_name}
@@ -534,7 +597,7 @@
 							name="lastName"
 							id="lastname"
 							maxlength="100"
-							class="border border-gray-500 rounded w-full py-2 px-3 leading-tight focus:outline-none text-black"
+							class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none"
 						/>
 					</div>
 				</div>
@@ -546,7 +609,7 @@
 						type="email"
 						name="email"
 						id="email"
-						class="border border-gray-500 rounded w-full py-2 px-3 leading-tight focus:outline-none text-black"
+						class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none"
 					/>
 				</div>
 
@@ -556,13 +619,13 @@
 						bind:value={formDefaults.target_language}
 						id="language"
 						name="language"
-						class="border border-gray-500 rounded-sm w-1/2 focus:outline-none text-black pl-2 py-1"
+						class="border border-neutral-700 bg-neutral-950 rounded-sm w-full min-[450px]:w-1/2 focus:outline-none pl-2 py-1"
 					>
 						{#each languages as language}
 							<option value={language}>{language}</option>
 						{/each}
 					</select>
-					<p class="text-[0.8rem] text-gray-800">
+					<p class="text-[0.8rem] text-neutral-300">
 						Messages sent to you will be translated to this language.
 					</p>
 				</div>
@@ -574,7 +637,7 @@
 						type="text"
 						name="apiKey"
 						id="apiKey"
-						class="border border-gray-500 rounded w-full py-2 px-3 leading-tight focus:outline-none text-black"
+						class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none"
 					/>
 				</div>
 
@@ -585,7 +648,7 @@
 						type="password"
 						name="password"
 						id="password"
-						class="border border-gray-500 rounded w-full py-2 px-3 leading-tight focus:outline-none text-black"
+						class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none"
 					/>
 				</div>
 
@@ -603,7 +666,7 @@
 						type="password"
 						name="confPassword"
 						id="confPassword"
-						class="border border-gray-500 rounded w-full py-2 px-3 leading-tight focus:outline-none text-black disabled:cursor-not-allowed disabled:opacity-30"
+						class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none disabled:cursor-not-allowed disabled:opacity-30"
 					/>
 				</div>
 
@@ -611,7 +674,7 @@
 					<div class="space-x-3">
 						<button
 							disabled={formValsUnchangedOrEmpty}
-							class="rounded bg-white py-2 px-4 text-gray-900 ring-1 ring-inset ring-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+							class="rounded bg-white py-2 px-4 text-black ring-1 ring-inset ring-gray-400 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
 							on:click|preventDefault={() => resetForm(true)}
 						>
 							Reset
@@ -619,7 +682,7 @@
 						<button
 							type="submit"
 							disabled={formValsUnchangedOrEmpty}
-							class="text-white mt-2 py-2 px-4 rounded bg-blue-500 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
+							class="text-white mt-2 py-2 px-4 rounded bg-blue-700 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
 							>Update</button
 						>
 					</div>
@@ -628,13 +691,13 @@
 							{formErrorMsg}
 						</p>
 					{:else if formSuccessMsg}
-						<p class="text-[0.8rem] text-blue-500">
+						<p class="text-[0.8rem] text-blue-700">
 							{formSuccessMsg}
 						</p>
 					{:else if isLoading}
 						<LoadingIcon size="w-7 h-7" />
 					{:else}
-						<p class="text-[0.8rem] text-gray-800" class:hidden={formValsUnchangedOrEmpty}>
+						<p class="text-[0.8rem] text-neutral-200" class:hidden={formValsUnchangedOrEmpty}>
 							* Unsaved Changes
 						</p>
 					{/if}
@@ -643,7 +706,7 @@
 		</section>
 	{/if}
 
-	<!-- Specific Conversation Option -->
+	<!-- Info Sidebar of a Specific Conversation -->
 	{#if $displayChatInfo}
 		<InfoSidebar />
 	{/if}
@@ -662,7 +725,6 @@
 		flex-direction: column;
 		/* Set a fixed width for the chat area or adjust as needed */
 		height: 100vh;
-		border-left: 1px solid #ccc;
 		/* Border to separate from the rest of the interface */
 	}
 </style>

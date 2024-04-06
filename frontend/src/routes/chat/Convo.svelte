@@ -7,6 +7,7 @@
 	export let convoID: number;
 	export let isGroupChat: boolean;
 	export let url: string | null;
+	export let itemHeight: number;
 
 	const dispatch: EventDispatcher<any> = createEventDispatcher();
 
@@ -17,9 +18,9 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-<!-- padding: 0.5rem 1rem; -->
 <li
-	class="chat hover:bg-gray-300 cursor-pointer rounded-lg py-2 px-3"
+	class="chat hover:bg-neutral-800 cursor-pointer rounded-lg py-2 px-3"
+	style="height: {itemHeight}px;"
 	class:is-selected={isSelected}
 	id={convoID.toString()}
 	on:click={handleClick}
@@ -40,7 +41,7 @@
 				viewBox="0 0 24 24"
 				stroke-width="1"
 				stroke="currentColor"
-				class="h-full"
+				class="h-full text-neutral-200"
 				class:text-gray-200={isSelected}
 			>
 				<path
@@ -57,7 +58,7 @@
 				viewBox="0 0 24 24"
 				stroke-width="1.1"
 				stroke="currentColor"
-				class="h-full"
+				class="h-full text-neutral-200"
 				class:text-gray-200={isSelected}
 			>
 				<path
@@ -72,14 +73,14 @@
 		class="h-[90%] flex-col justify-start text-[1.06rem] gap-[2px] flex-1 min-w-0 mr-[5px] hidden min-[1047px]:flex"
 	>
 		<div
-			class="text-base font-semibold overflow-hidden text-ellipsis"
+			class="text-base font-semibold overflow-hidden text-ellipsis text-neutral-200"
 			class:is-selected-color={isSelected}
 		>
 			{chatName}
 		</div>
 
 		<div
-			class="text-[0.9rem] text-gray-600 overflow-hidden text-ellipsis truncate"
+			class="text-[0.9rem] text-neutral-500 overflow-hidden text-ellipsis truncate"
 			class:is-selected-color={isSelected}
 		>
 			{#if $latestMessages[convoID]}
@@ -90,7 +91,7 @@
 	<div
 		class="flex-grow-0 flex-shrink-0 basis-auto flex-col gap-[0.8rem] items-end h-full hidden min-[1047px]:flex"
 	>
-		<div class="text-gray-600 text-[0.9rem]" class:is-selected-color={isSelected}>
+		<div class="text-neutral-500 text-[0.9rem]" class:is-selected-color={isSelected}>
 			{#if $latestMessages[convoID]}
 				{$latestMessages[convoID].time}
 			{/if}
@@ -108,12 +109,12 @@
 		display: flex;
 		align-items: center;
 		border-bottom: 1px solid none;
-		height: 80px;
+		/* height: 80px; */
 		/* Separator between chats */
 	}
 
 	.is-selected {
-		background-color: #007bff;
+		background-color: #0059ffeb;
 	}
 
 	.is-selected-color {

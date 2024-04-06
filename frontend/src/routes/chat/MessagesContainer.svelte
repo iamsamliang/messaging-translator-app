@@ -1,18 +1,19 @@
 <script lang="ts">
-	import { messages } from '$lib/stores/stores';
-	import { onMount, tick } from 'svelte';
+	import { selectedConvoID } from '$lib/stores/stores';
+	import { createEventDispatcher, tick } from 'svelte';
 	import Message from './Message.svelte';
 	import { isSameDay, differenceInHours } from 'date-fns';
 	import { getDateSeparator, formatTime } from '$lib/utils';
 	import type { MessageCreate } from '$lib/interfaces/CreateModels.interface';
+	import LazyList from '$lib/components/LazyList.svelte';
+	import { messageStore } from '$lib/stores/messages';
+	import clientSettings from '$lib/config/config.client';
 
 	export let currUserID: number;
 
-	let messagesContainer: HTMLDivElement;
-
-	// process messages to include date separators
-	$: processedMsgs = $messages.reduce((acc: MessageCreate[], message, index) => {
-		let prevMsgDate = index > 0 ? $messages[index - 1].sent_at : null;
+	// Process chat messages in messageStore to include date separators
+	$: processedMsgs = $messageStore.messages.reduce((acc: MessageCreate[], message, index) => {
+		let prevMsgDate = index > 0 ? $messageStore.messages[index - 1].sent_at : null;
 		let separator = null;
 
 		if (prevMsgDate) {
@@ -30,30 +31,28 @@
 		acc.push({ ...message, separator });
 		return acc;
 	}, []);
+	//
 
-	// Scroll to bottom function
+	// This block of code is used to ensure the MessageContainer is scrolled to the bottom when we initially fetch messages and when we send a new message
+	export let scrollBottomSignal: boolean;
+	const dispatch = createEventDispatcher();
+	let messagesContainer: HTMLDivElement;
 	async function scrollToBottom() {
 		await tick();
 		messagesContainer.scrollTop = messagesContainer.scrollHeight;
 	}
-
-	// Reactive statement to handle new messages
-	$: if ($messages) {
+	$: if (scrollBottomSignal) {
 		scrollToBottom();
+		dispatch('scrolledBottom');
 	}
-
-	// Ensure scrolling to bottom on initial load
-	onMount(async () => {
-		await scrollToBottom();
-	});
 </script>
 
 <div
-	class="message-container no-scrollbar overscroll-contain gap-1 bg-neutral-100"
+	class="message-container no-scrollbar overscroll-contain gap-1 bg-neutral-950"
 	bind:this={messagesContainer}
 >
 	<!-- Repeat this 'message' div for each message in the chat -->
-	{#each processedMsgs as message}
+	<!-- {#each processedMsgs as message}
 		{#if message.separator}
 			<div class="flex justify-center text-sm text-gray-600 mt-3">
 				{message.separator[0]}
@@ -68,7 +67,39 @@
 			senderName={message.sender_name}
 			displayPhoto={message.display_photo}
 		/>
-	{/each}
+	{/each} -->
+
+	<!-- New -->
+	<LazyList
+		items={processedMsgs}
+		loadedAll={$messageStore.loadedAll}
+		root={messagesContainer}
+		rootMargin="100px"
+		let:item
+		on:loadMore={async () =>
+			messageStore.fetchMsgs(
+				$selectedConvoID,
+				$messageStore.offset,
+				clientSettings.fetchMsgBatchSize,
+				$messageStore.loadedAll,
+				messagesContainer
+			)}
+	>
+		{#if item.separator}
+			<div class="flex justify-center text-sm text-neutral-400 mt-3">
+				{item.separator[0]}
+				{item.separator[1]}
+			</div>
+		{/if}
+		<Message
+			content={item.original_text}
+			time={formatTime(item.sent_at)}
+			senderID={item.sender_id}
+			{currUserID}
+			senderName={item.sender_name}
+			displayPhoto={item.display_photo}
+		/>
+	</LazyList>
 </div>
 
 <style>

@@ -1,4 +1,5 @@
 import { fromUnixTime } from 'date-fns';
+import clientSettings from './config/config.client';
 
 export async function uploadImageToS3(url: string, presignedForm: FormData) {
     const response = await fetch(url, {
@@ -34,7 +35,7 @@ export async function refreshGETPresigned(key: string, IDs: number[]): Promise<R
     if (key === "convo_id") sendData = IDs[0];
 
     const getURLResponse: Response = await fetch(
-        `http://localhost:8000/aws/s3/generate-presigned-get`,
+        `${clientSettings.apiBaseURL}/aws/s3/generate-presigned-get`,
         {
             method: 'POST',
             credentials: 'include',

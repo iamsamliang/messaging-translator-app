@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
 from app.core.security import verify_token, VerifyType
-from ..database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal
 
 
 # tokenURL is used for documentation. Tells client where to get an access token

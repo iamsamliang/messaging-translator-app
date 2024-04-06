@@ -1,33 +1,36 @@
-import { differenceInHours } from "date-fns";
 import type { MessageCreate } from "./interfaces/CreateModels.interface";
 import type { Conversation, MessageReceive, UpdateConvoName, UpdateConvoPhoto, UpdateConvoSelf, WebsocketPacket, UpdateConvoAddOthers, UpdateConvoRemoveOthers } from "./interfaces/ResponseModels.interface";
 import type { LatestMessageInfo } from "./interfaces/UnreadConvo.interface";
-import { messages, latestMessages, selectedConvoID, conversations, displayChatInfo, convoMembers, sortedConvoMemberIDs } from "./stores/stores";
+import { latestMessages, selectedConvoID, conversations, displayChatInfo, convoMembers, sortedConvoMemberIDs } from "./stores/stores";
+import { messageStore } from "./stores/messages";
 import { getMsgPreviewTimeValue } from "./utils";
+import clientSettings from "./config/config.client";
+import { websocketNotifStore } from "./stores/websocketNotification";
 
 // src/lib/websocket.js
 let socket: WebSocket;
 let currConvoID: number = -1;
 let allConversations: Map<number, Conversation>;
 
-const selConvo_unsubscribe = selectedConvoID.subscribe(value => {
+const selConvoUnsubscribe = selectedConvoID.subscribe(value => {
     currConvoID = value;
 });
-const conversations_unsubscribe = conversations.subscribe(value => {
+const conversationsUnsubscribe = conversations.subscribe(value => {
     allConversations = value;
 });
 
-function unsubscribe_all(): void {
-    conversations_unsubscribe();
-    selConvo_unsubscribe();
+function unsubscribeAll(): void {
+    conversationsUnsubscribe();
+    selConvoUnsubscribe();
 }
 
 export function connectWebSocket() {
     if (typeof window !== "undefined") { // Check if running in browser
         try {
-            socket = new WebSocket('ws://localhost:8000/ws/comms');
+            socket = new WebSocket(`${clientSettings.websocketBaseUrl}/ws/comms`);
 
             socket.onerror = (error) => {
+                websocketNotifStore.sendNotification("An error occured with your connection. Please refresh the page.")
                 console.error(`WebSocket error: ${error}`);
             }
             socket.onopen = () => console.log("WebSocket is open now.");
@@ -68,7 +71,7 @@ export function connectWebSocket() {
 
                     try {
                         const response: Response = await fetch(
-                            `http://localhost:8000/conversations/${updateData.convo_id}?get_latest_msg=true`,
+                            `${clientSettings.apiBaseURL}/conversations/${updateData.convo_id}?get_latest_msg=true`,
                             {
                                 method: 'GET',
                                 credentials: 'include'
@@ -111,7 +114,7 @@ export function connectWebSocket() {
                     if (updateData.convo_id === currConvoID) {
                         displayChatInfo.set(false);
                         selectedConvoID.set(-10);
-                        messages.set([]);
+                        messageStore.reset();
                     }
 
                     conversations.update((currConversations) => {
@@ -176,40 +179,47 @@ export function connectWebSocket() {
                             });
                         }
                         // update messages UI for real-time
-                        messages.update(m => {
-                            const msgLen = m.length;
-                            let senderNameVal: string | null = receivedMessage.sender_name;
+                        messageStore.receiveMessage(receivedMessage);
+                        // messageStore.update(state => {
+                        //     const m = state.messages;
+                        //     const msgLen = m.length;
+                        //     let senderNameVal: string | null = receivedMessage.sender_name;
 
-                            const arePrevMsgs = msgLen > 0;
-                            const sameSenderAsPrev = m[msgLen - 1].sender_id === receivedMessage.sender_id;
-                            const within2Hours = differenceInHours(receivedMessage.sent_at, m[msgLen - 1].sent_at) < 2
+                        //     const arePrevMsgs = msgLen > 0;
 
-                            if (arePrevMsgs && sameSenderAsPrev && within2Hours) {
-                                senderNameVal = null;
-                                m[msgLen - 1].display_photo = false;
-                            } else if (arePrevMsgs && (!sameSenderAsPrev || !within2Hours)) {
-                                m[msgLen - 1].display_photo = true;
-                            }
+                        //     if (arePrevMsgs) {
+                        //         const sameSenderAsPrev = m[msgLen - 1].sender_id === receivedMessage.sender_id;
+                        //         const within2Hours = differenceInHours(receivedMessage.sent_at, m[msgLen - 1].sent_at) < 2
+                                
+                        //         if (sameSenderAsPrev && within2Hours) {
+                        //             senderNameVal = null;
+                        //             m[msgLen - 1].display_photo = false;
+                        //         } else {
+                        //             m[msgLen - 1].display_photo = true;
+                        //         }
+                        //     }
 
-                            const formattedMsg: MessageCreate = {
-                                conversation_id: receivedMessage.conversation_id,
-                                sender_id: receivedMessage.sender_id,
-                                original_text: receivedMessage.original_text,
-                                orig_language: receivedMessage.orig_language,
-                                sent_at: receivedMessage.sent_at,
-                                sender_name: senderNameVal,
-                                display_photo: true,
-                            }
+                        //     const formattedMsg: MessageCreate = {
+                        //         conversation_id: receivedMessage.conversation_id,
+                        //         sender_id: receivedMessage.sender_id,
+                        //         original_text: receivedMessage.original_text,
+                        //         orig_language: receivedMessage.orig_language,
+                        //         sent_at: receivedMessage.sent_at,
+                        //         sender_name: senderNameVal,
+                        //         display_photo: true,
+                        //     }
                             
-                            m = [...m, formattedMsg];
-
-                            return m;
-                        });
+                        //     return {
+                        //         ...state,
+                        //         messages: [...m, formattedMsg],
+                        //         offset: state.offset + 1
+                        //     }
+                        // });
 
                         // notify server of this update
                         const patchData = { is_read: 1 };
                         const patchResponse: Response = await fetch(
-                            `http://localhost:8000/translations/${receivedMessage.translation_id}`,
+                            `${clientSettings.apiBaseURL}/translations/${receivedMessage.translation_id}`,
                             {
                                 method: 'PATCH',
                                 headers: {
@@ -239,7 +249,7 @@ export function connectWebSocket() {
                     if (!allConversations.has(receivedMessage.conversation_id)) {
                         try {
                             const response: Response = await fetch(
-                                `http://localhost:8000/conversations/${receivedMessage.conversation_id}?get_latest_msg=false`,
+                                `${clientSettings.apiBaseURL}/conversations/${receivedMessage.conversation_id}?get_latest_msg=false`,
                                 {
                                     method: 'GET',
                                     credentials: 'include'
@@ -280,13 +290,12 @@ export function connectWebSocket() {
                 }
             }
             socket.onclose = () => {
-                unsubscribe_all();
-                alert("Connection to messaging app closed. Reload page to reconnect.");
+                unsubscribeAll();
+                websocketNotifStore.sendNotification(`Connection to messaging app closed. Reload page to reconnect.`);
             }
-            // Define other event handlers as needed
         } catch (error) {
-            unsubscribe_all();
-            console.error(`there was an error trying to establish websocket connection: ${error}`);
+            unsubscribeAll();
+            websocketNotifStore.sendNotification(`There was an error trying to establish connection to messaging app. Reload page to retry.`);
         }
     }
 }
@@ -298,7 +307,7 @@ export function sendMessageSocket(message: MessageCreate): void {
 }
 
 export function closeWebSocket(): void {
-    unsubscribe_all();
+    unsubscribeAll();
     if (socket) {
         socket.close();
     }

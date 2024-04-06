@@ -8,6 +8,7 @@
 		conversations
 	} from '$lib/stores/stores';
 	import { isPresignedExpired, refreshGETPresigned } from '$lib/aws';
+	import clientSettings from '$lib/config/config.client';
 
 	let newName: string = '';
 
@@ -59,7 +60,7 @@
 
 			if (newName.length > 0) {
 				const response: Response = await fetch(
-					`http://localhost:8000/conversations/${$selectedConvoID}/update`,
+					`${clientSettings.apiBaseURL}/conversations/${$selectedConvoID}/update`,
 					{
 						method: 'PATCH',
 						credentials: 'include',
@@ -108,9 +109,9 @@
 {#if $selectedConvoID !== -10}
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<header
-		class="flex items-center justify-between p-[10px] bg-white border-b border-solid border-gray-200"
+		class="flex items-center justify-between py-[15px] px-[10px] gap-4 min-[555px]:px-[20px] bg-neutral-950 text-white border-b-[0.5px] border-neutral-500"
 	>
-		<div class="flex items-center min-w-0 w-full">
+		<div class="flex items-center min-w-0 w-full gap-2">
 			<div class="chat-photo">
 				{#if $selectedConvo?.presignedUrl}
 					<img
@@ -162,7 +163,7 @@
 						autofocus
 						required
 						type="text"
-						class="w-full border-none outline-none p-[5px]"
+						class="w-full border-none outline-none p-[5px] bg-neutral-950"
 					/>
 					<!-- <button
 						bind:this={button}
@@ -187,7 +188,7 @@
 					viewBox="0 0 24 24"
 					stroke-width="1.5"
 					stroke="currentColor"
-					class="w-6 h-6 cursor-pointer"
+					class="w-8 h-8 cursor-pointer"
 				>
 					<path
 						stroke-linecap="round"
@@ -198,6 +199,7 @@
 			</div>
 		{/if}
 	</header>
+	<!-- <hr class="self-center border-b w-[95%] border-b-gray-300" /> -->
 {/if}
 
 <style>

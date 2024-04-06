@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, StringConstraints
+from pydantic import BaseModel, StringConstraints
 from typing import Annotated
 
 from datetime import datetime
+
+from app.schemas.email_type import CustomEmailStr
 
 # if TYPE_CHECKING:
 #     from .message import MessageResponse
@@ -21,7 +23,7 @@ class UserBase(BaseModel):
     profile_photo: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
     ) = None
-    email: EmailStr
+    email: CustomEmailStr
     target_language: Annotated[
         str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)
     ]
@@ -53,7 +55,7 @@ class UserUpdate(BaseModel):
     profile_photo: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=4096)] | None
     ) = None
-    email: EmailStr | None = None
+    email: CustomEmailStr | None = None
     target_language: (
         Annotated[
             str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=100)

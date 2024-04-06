@@ -1,6 +1,11 @@
-import { isToday, isYesterday, isThisWeek, getDay, format } from "date-fns";
+import { isToday, isYesterday, getDay, format, subDays, startOfDay, isBefore } from "date-fns";
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+
+function isBeforeOrOnSevenDaysAgo(sentAt: string) {
+    const sixDaysAgo = subDays(new Date(), 6);
+    return isBefore(sentAt, startOfDay(sixDaysAgo));
+}
 
 export function getCurrentTime(): string {
     return new Date().toISOString();
@@ -25,7 +30,7 @@ export function formatTime(sentAt: string): string {
 export function getDateSeparator(sentAt: string): string[] {
     if (isToday(sentAt)) return [`Today`, formatTime(sentAt)];
     if (isYesterday(sentAt)) return [`Yesterday`, formatTime(sentAt)];
-    if (isThisWeek(sentAt)) {
+    if (!isBeforeOrOnSevenDaysAgo(sentAt)) {
         return [DAYS[getDay(sentAt)], formatTime(sentAt)];
     }
     
@@ -36,7 +41,7 @@ export function getDateSeparator(sentAt: string): string[] {
 export function getMsgPreviewTimeValue(sentAt: string): string {
     if (isToday(sentAt)) return formatTime(sentAt);
     if (isYesterday(sentAt)) return `Yesterday`;
-    if (isThisWeek(sentAt)) {
+    if (!isBeforeOrOnSevenDaysAgo(sentAt)) {
         return DAYS[getDay(sentAt)];
     }
     

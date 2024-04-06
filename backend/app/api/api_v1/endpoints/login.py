@@ -28,6 +28,12 @@ async def login_for_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if not login_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_412_PRECONDITION_FAILED,
+            detail="Please verify your account first to login",
+        )
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         data={"sub": f"userid:{login_user.id}", "iat": datetime.utcnow()},

@@ -8,6 +8,7 @@ from app.api.api_v1.endpoints import (
     websocket,
     translation,
     aws,
+    health,
 )
 
 api_router = APIRouter()
@@ -20,3 +21,4 @@ api_router.include_router(
     translation.router, prefix="/translations", tags=["translation"]
 )
 api_router.include_router(aws.router, prefix="/aws", tags=["aws"])
+api_router.include_router(health.router, prefix="/health", tags=["health"])

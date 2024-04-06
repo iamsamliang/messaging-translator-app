@@ -67,7 +67,7 @@ async def generate_presigned_post(
         if group:
             # group chats
             response = s3_client.generate_presigned_post(
-                Bucket="translation-messaging-bucket",
+                Bucket=settings.S3_BUCKET_NAME,
                 Key=pic_key,
                 Fields={
                     "Content-Type": "image/jpeg",
@@ -87,7 +87,7 @@ async def generate_presigned_post(
         else:
             # users
             response = s3_client.generate_presigned_post(
-                Bucket="translation-messaging-bucket",
+                Bucket=settings.S3_BUCKET_NAME,
                 Key=pic_key,
                 Fields={
                     "Content-Type": "image/jpeg",
@@ -171,7 +171,7 @@ async def generate_presigned_get(
                 url = cached_url
             else:
                 url = await generate_presigned_get_url(
-                    bucket_name="translation-messaging-bucket",
+                    bucket_name=settings.S3_BUCKET_NAME,
                     object_key=result[id],
                     expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
                     redis_client=redis_client,

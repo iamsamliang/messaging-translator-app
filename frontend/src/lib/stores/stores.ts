@@ -1,9 +1,6 @@
 import { derived, writable } from 'svelte/store';
-import type { MessageCreate } from '$lib/interfaces/CreateModels.interface';
 import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
 import type { Member, Conversation } from '$lib/interfaces/ResponseModels.interface';
-
-export const messages = writable<MessageCreate[]>([]);
 
 export const conversations = writable<Map<number, Conversation>>(new Map());
 

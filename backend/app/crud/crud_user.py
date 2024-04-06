@@ -1,14 +1,13 @@
 from app.utils.convo import convo_name_url_processing
+from pydantic import EmailStr
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
-from pydantic import EmailStr
 from redis.asyncio import Redis
 
 from app import crud
 
-from app.models import User, Conversation, Translation
+from app.models import User, Translation
 from app.schemas.user import UserCreate, UserUpdate
 from app.exceptions import UserAlreadyExistsException
 from app.core import security
@@ -30,20 +29,33 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         redis_client: Redis,
     ) -> tuple[User | None, str | None]:
         # optimized
+        # user = (
+        #     (
+        #         await db.execute(
+        #             select(User)
+        #             .where(User.id == user_id)
+        #             .options(selectinload(User.conversations))
+        #         )
+        #     )
+        #     .scalars()
+        #     .first()
+        # )
+
+        # NEW
+        # optimized
         user = (
-            (
-                await db.execute(
-                    select(User)
-                    .where(User.id == user_id)
-                    .options(selectinload(User.conversations))
-                )
-            )
-            .scalars()
-            .first()
+            (await db.execute(select(User).where(User.id == user_id))).scalars().first()
         )
 
         if not user:
             return None, None
+
+        top_30_convos = await crud.conversation.get_user_convos(
+            db=db,
+            user_id=user_id,
+            offset=0,
+            limit=settings.INITIAL_CONVERSATION_LOAD_LIMIT,
+        )
 
         presigned_url = None
 
@@ -56,7 +68,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
             if not presigned_url:
                 presigned_url = await generate_presigned_get_url(
-                    bucket_name="translation-messaging-bucket",
+                    bucket_name=settings.S3_BUCKET_NAME,
                     object_key=user.profile_photo,
                     expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
                     redis_client=redis_client,
@@ -64,7 +76,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         latest_message_ids = [
             conversation.latest_message_id
-            for conversation in user.conversations
+            for conversation in top_30_convos
             if conversation.latest_message_id is not None
         ]
 
@@ -88,7 +100,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             for trans in translations
         }
 
-        for conversation in user.conversations:
+        for conversation in top_30_convos:
             if conversation.latest_message_id:
                 val = translation_map.get(conversation.latest_message_id)
                 convo_latest_msg = await crud.message.get(
@@ -121,11 +133,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
                 convo=conversation, curr_user_id=user.id, redis_client=redis_client
             )
 
+        setattr(user, "top_n_convos", top_30_convos)
+
         return user, presigned_url
 
     async def get_by_email(self, db: AsyncSession, email: EmailStr) -> User | None:
         user = (
-            (await db.execute(select(User).where(User.email == email)))
+            (await db.execute(select(User).where(User.email == email.lower())))
             .scalars()
             .first()
         )

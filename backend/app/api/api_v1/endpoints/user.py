@@ -1,14 +1,17 @@
 from typing import Annotated
 from datetime import datetime
 
+from app.schemas.email_type import CustomEmailStr
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     status,
     Response,
     Form,
 )
+from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app import crud, models, schemas
@@ -17,8 +20,15 @@ from app.api.dependencies import (
     verify_current_user_factory,
     verify_current_user_w_cookie,
 )
+from app.utils.email import (
+    send_account_verification_email,
+    verify_verification_token,
+    send_reset_password_email,
+    verify_reset_password_token,
+)
 from app.core.security import VerifyType
 from app.exceptions import UserAlreadyExistsException
+from app.core.config import settings
 
 
 router = APIRouter()
@@ -50,7 +60,8 @@ async def create_user(
     db: DatabaseDep,
     user_in: schemas.UserCreate,
     response: Response,
-) -> models.User:
+    background_tasks: BackgroundTasks,
+) -> schemas.UserCreateOut:
     try:
         user_in.first_name = user_in.first_name.title()
         user_in.last_name = user_in.last_name.title()
@@ -58,7 +69,18 @@ async def create_user(
         user = await crud.user.create(db=db, obj_in=user_in)
         await db.commit()
         response.headers["Location"] = f"/users/me/default"
-        return user
+
+        # Send Account Verification Email Here
+        await send_account_verification_email(
+            new_user_email=user.email, background_tasks=background_tasks
+        )
+
+        return schemas.UserCreateOut(
+            id=user.id,
+            cookie_expire_secs=settings.ACCOUNT_VERIFICATION_TOKEN_EXPIRE_HOURS
+            * 60
+            * 60,
+        )
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -66,6 +88,64 @@ async def create_user(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
+
+
+@router.get("/resend-verify-email")
+async def resend_verification_email(
+    email: CustomEmailStr, background_tasks: BackgroundTasks
+) -> JSONResponse:
+    await send_account_verification_email(
+        new_user_email=email, background_tasks=background_tasks
+    )
+    return JSONResponse(
+        {
+            "message": "A verification link has been sent to your email. Remember to check your spam if it's not in your inbox."
+        }
+    )
+
+
+@router.post("/verify-account")
+async def verify_user_account(
+    db: DatabaseDep, request_data: schemas.VerificationPayLoad
+) -> JSONResponse:
+    await verify_verification_token(db=db, verification_token=request_data.token)
+    return JSONResponse({"message": "Your account has been successfully verified."})
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    db: DatabaseDep,
+    email: Annotated[CustomEmailStr, Form()],
+    background_tasks: BackgroundTasks,
+) -> JSONResponse:
+    req_response = JSONResponse(
+        {
+            "message": "A password reset link has been sent to your email. Remember to check your spam if it's not in your inbox."
+        }
+    )
+
+    user = await crud.user.get_by_email(db=db, email=email)
+    if user is None:
+        return req_response
+
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_412_PRECONDITION_FAILED,
+            detail="Please verify your account.",
+        )
+
+    await send_reset_password_email(
+        email=email, curr_pw=user.password_hash, background_tasks=background_tasks
+    )
+    return req_response
+
+
+@router.post("/reset-password")
+async def reset_password(
+    db: DatabaseDep, token: Annotated[str, Form()], password: Annotated[str, Form()]
+) -> JSONResponse:
+    await verify_reset_password_token(db=db, reset_token=token, new_password=password)
+    return JSONResponse({"message": "Your password has been changed."})
 
 
 @router.patch("/update")

@@ -14,6 +14,7 @@
 	import type { S3PreSignedURLPOSTRequest } from '$lib/interfaces/CreateModels.interface';
 	import { isPresignedExpired, refreshGETPresigned, uploadImageToS3 } from '$lib/aws';
 	import LoadingIcon from '$lib/components/LoadingIcon.svelte';
+	import clientSettings from '$lib/config/config.client';
 
 	let showMembers: boolean = false;
 
@@ -104,7 +105,7 @@
 						};
 
 						const getPresigned: Response = await fetch(
-							`http://localhost:8000/aws/s3/generate-presigned-post/${true}`,
+							`${clientSettings.apiBaseURL}/aws/s3/generate-presigned-post/${true}`,
 							{
 								method: 'POST',
 								headers: {
@@ -138,7 +139,7 @@
 
 						// 4. Update backend with the Key
 						const response: Response = await fetch(
-							`http://localhost:8000/conversations/${$selectedConvoID}/update`,
+							`${clientSettings.apiBaseURL}/conversations/${$selectedConvoID}/update`,
 							{
 								method: 'PATCH',
 								credentials: 'include',
@@ -315,7 +316,7 @@
 		try {
 			const data = { method: 'add', user_ids: emails, sorted_ids: $sortedConvoMemberIDs };
 			const response: Response = await fetch(
-				`http://localhost:8000/conversations/${$selectedConvoID}/update-members`,
+				`${clientSettings.apiBaseURL}/conversations/${$selectedConvoID}/update-members`,
 				{
 					method: 'PATCH',
 					headers: {
@@ -371,7 +372,7 @@
 		try {
 			const data = { method: 'remove', user_ids: [email], sorted_ids: $sortedConvoMemberIDs };
 			const response: Response = await fetch(
-				`http://localhost:8000/conversations/${$selectedConvoID}/update-members`,
+				`${clientSettings.apiBaseURL}/conversations/${$selectedConvoID}/update-members`,
 				{
 					method: 'PATCH',
 					headers: {
@@ -557,7 +558,7 @@
 {/if}
 
 <aside
-	class="flex flex-col min-w-[180px] border-l-2 border-l-gray-300 overflow-scroll min-h-screen md:min-w-[250px] min-[1120px]:min-w-[320px]"
+	class="flex flex-col min-w-[180px] border-l border-l-black overflow-scroll min-h-screen md:min-w-[250px] min-[1120px]:min-w-[320px] bg-neutral-900 text-white"
 >
 	<div class="flex flex-col justify-center items-center mt-5 gap-3">
 		{#if $selectedConvo?.presignedUrl}
@@ -591,26 +592,28 @@
 			class="flex flex-col justify-start md:flex-row md:justify-between flex-grow w-full md:items-center md:gap-2"
 		>
 			<button
-				class="flex px-2 py-3 rounded-md flex-grow gap-2 hover:bg-gray-200 text-start font-semibold text-sm md:text-base"
+				class="flex px-2 py-3 rounded-md flex-grow gap-2 hover:bg-neutral-800 text-start font-semibold text-sm md:text-base"
 				on:click={getMembers}
 				class:items-center={!showMembers}
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 256 512"
-					stroke-width="1"
-					stroke="currentColor"
+					viewBox="0 0 20 20"
+					fill="currentColor"
 					class="w-5 h-5 transition-transform"
 					class:rotate-90={showMembers}
 				>
 					<path
-						d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z"
+						fill-rule="evenodd"
+						d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+						clip-rule="evenodd"
 					/>
 				</svg>
+
 				Members
 			</button>
 			<button
-				class="gap-1 hover:text-blue-700 text-sm items-center mr-2 h-fit hidden md:flex"
+				class="gap-1 hover:text-neutral-300 text-sm items-center mr-2 h-fit hidden md:flex"
 				on:click={openModal}
 			>
 				<svg
@@ -645,7 +648,7 @@
 										viewBox="0 0 24 24"
 										stroke-width="1.1"
 										stroke="currentColor"
-										class="scale-110"
+										class="scale-110 text-neutral-200"
 									>
 										<path
 											stroke-linecap="round"
@@ -685,7 +688,7 @@
 								/>
 							</svg>
 						{:else}
-							<p class="text-gray-600 hidden md:flex">Me</p>
+							<p class="text-neutral-200 hidden md:flex">Me</p>
 						{/if}
 					</li>
 				{/each}
@@ -693,14 +696,14 @@
 		{/if}
 
 		<button
-			class="px-2 py-3 rounded-md flex-grow w-full hover:bg-gray-200 text-center font-semibold flex justify-center text-sm md:hidden"
+			class="px-2 py-3 rounded-md flex-grow w-full hover:bg-neutral-800 text-center font-semibold flex justify-center text-sm md:hidden"
 			on:click={openModal}
 		>
 			Add Member
 		</button>
 
 		<button
-			class="px-2 py-3 rounded-md flex-grow w-full hover:bg-gray-200 font-semibold flex justify-center md:justify-start text-center md:text-start text-sm md:text-base"
+			class="px-2 py-3 rounded-md flex-grow w-full hover:bg-neutral-800 font-semibold flex justify-center md:justify-start text-center md:text-start text-sm md:text-base"
 			on:click|stopPropagation={handleChangeChatName}
 		>
 			Change Chat Name
@@ -708,7 +711,7 @@
 
 		<label
 			for="profilePhoto"
-			class="px-2 py-3 rounded-md flex-grow w-full hover:bg-gray-200 font-semibold flex justify-center md:justify-start text-center md:text-start text-sm md:text-base cursor-pointer"
+			class="px-2 py-3 rounded-md flex-grow w-full hover:bg-neutral-800 font-semibold flex justify-center md:justify-start text-center md:text-start text-sm md:text-base cursor-pointer"
 		>
 			Change Chat Photo
 			<input

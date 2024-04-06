@@ -37,6 +37,7 @@ class User(Base):
     target_language: Mapped[str] = mapped_column(String(100))
     is_admin: Mapped[bool] = mapped_column(default=False)
     api_key: Mapped[str] = mapped_column(String(255))
+    is_verified: Mapped[bool] = mapped_column(default=False)
 
     # store all times in UTC
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -51,7 +52,6 @@ class User(Base):
     conversations: Mapped[List["Conversation"]] = relationship(
         secondary=group_member_association,
         back_populates="members",
-        order_by="Conversation.latest_message_id.asc()",
     )
 
 
@@ -71,6 +71,10 @@ class Message(Base):
     )
     translations: Mapped[List["Translation"]] = relationship(
         back_populates="message", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index("idx_conversation_id_sent_at", conversation_id, sent_at.desc()),
     )
 
 
@@ -102,6 +106,8 @@ class Conversation(Base):
 
     # Column for the latest message
     latest_message_id: Mapped[int] = mapped_column(nullable=True, index=True)
+
+    chat_identifier: Mapped[str] = mapped_column(String(64), index=True)
 
     # Relationships
     messages: Mapped[List[Message]] = relationship(

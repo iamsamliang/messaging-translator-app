@@ -11,7 +11,7 @@
 
 {#if senderID !== currUserID}
 	{#if $selectedConvo?.isGroupChat}
-		<div class="flex items-end max-w-[80%] gap-2" class:mb-2={displayPhoto}>
+		<div class="flex items-end max-w-[95%] min-[400px]:max-w-[80%] gap-2" class:mb-2={displayPhoto}>
 			<!-- Profile picture -->
 			<div class="w-[38px] overflow-hidden rounded-full flex-shrink-0">
 				{#if displayPhoto}
@@ -24,7 +24,7 @@
 							viewBox="0 0 24 24"
 							stroke-width="1.1"
 							stroke="currentColor"
-							class="scale-125"
+							class="scale-125 text-neutral-300"
 						>
 							<path
 								stroke-linecap="round"
@@ -39,24 +39,30 @@
 			<!-- Sender Name and Text Message -->
 			<div class="flex flex-col min-w-0">
 				{#if senderName}
-					<p class="text-xs text-gray-600 ml-[12px]">
+					<p class="text-xs text-neutral-400 ml-[12px]">
 						{senderName}
 					</p>
 				{/if}
-				<div class="message max-w-full">
+				<div class="message bg-neutral-800 max-w-full">
 					<div class="message-content min-w-0">{content}</div>
 					<div class="message-time">{time}</div>
 				</div>
 			</div>
 		</div>
 	{:else}
-		<div class="message max-w-[80%]" class:mb-2={displayPhoto}>
+		<div
+			class="message bg-neutral-800 max-w-[95%] min-[400px]:max-w-[80%]"
+			class:mb-2={displayPhoto}
+		>
 			<div class="message-content min-w-0">{content}</div>
 			<div class="message-time">{time}</div>
 		</div>
 	{/if}
 {:else}
-	<div class="message from-curr-user max-w-[80%]" class:mb-2={displayPhoto}>
+	<div
+		class="message bg-blue-700 from-curr-user max-w-[95%] min-[400px]:max-w-[80%]"
+		class:mb-2={displayPhoto}
+	>
 		<div class="message-content min-w-0">{content}</div>
 		<div class="message-time">{time}</div>
 	</div>
@@ -72,19 +78,19 @@
 		overflow-wrap: break-word;
 		/* This will wrap long words onto the next line */
 		padding: 7px;
-		background-color: #fff;
 		/* White background for messages */
 		border-radius: 15px;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		/* Soft shadow for messages */
 		align-self: flex-start;
 		/* Aligns messages to the start of the flex container */
+		color: #fff;
 	}
 
 	.from-curr-user {
 		align-self: flex-end;
-		background-color: rgb(0, 102, 255);
-		color: #fff;
+		/* background-color: rgb(0, 102, 255); */
+		color: #ffffffeb;
 	}
 
 	.message-content {

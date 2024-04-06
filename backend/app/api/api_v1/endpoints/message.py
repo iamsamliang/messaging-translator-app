@@ -1,11 +1,11 @@
 from typing import Annotated
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException, status, Response, Depends
+from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app import crud, models, schemas, translation
+from app import crud, models, schemas
 from app.api.dependencies import DatabaseDep, verify_current_user_w_cookie
 
 router = APIRouter()
@@ -15,23 +15,29 @@ router = APIRouter()
 
 
 @router.get("/{conversation_id}", response_model=list[schemas.MessageResponse])
-async def get_messages_sent(
+async def get_chat_messages(
     db: DatabaseDep,
     current_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
     conversation_id: int,
+    offset: int,
+    limit: int,
 ) -> list[models.Message]:
     try:
-        chat_history = []  # type: ignore
-        convo = await crud.conversation.get(db=db, id=conversation_id)
-        if convo is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Convo w/ id {conversation_id} doesn't exist",
-            )
+        chat_history = []
+        # convo = await crud.conversation.get(db=db, id=conversation_id)
+        # if convo is None:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_404_NOT_FOUND,
+        #         detail=f"Convo w/ id {conversation_id} doesn't exist",
+        #     )
+
+        latest_n_messages = await crud.message.get_most_recent_messages(
+            db=db, convo_id=conversation_id, offset=offset, limit=limit
+        )
 
         # Chat History: Grabbing the previous history as it was translated (if there is any history) irrespective of user's current language
         prev_msg = None
-        for message in await convo.awaitable_attrs.messages:
+        for message in reversed(latest_n_messages):
             # GETTING CHAT HISTORY IN USER'S LANGUAGE
             # In the current conversation, for each previous message:
 

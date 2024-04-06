@@ -10,3 +10,7 @@ class TokenPayLoad(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str
+
+
+class VerificationPayLoad(BaseModel):
+    token: str

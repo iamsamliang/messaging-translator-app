@@ -50,6 +50,24 @@ export interface Member {
     is_admin: boolean;
     presigned_url: string | null;
 }
+
+export interface LatestMessageResponse {
+    id: number;
+    conversation_id: number;
+    sender_id: number;
+    sent_at: string;
+    relevant_translation: string | null;
+    translation_id: number | null;
+    is_read: number | null;
+}
+
+export interface ConversationResponse {
+    id: number;
+    conversation_name: string;
+    latest_message: LatestMessageResponse | null;
+    is_group_chat: boolean;
+    presigned_url: string | null;
+}
 export interface Conversation {
     convoName: string;
     isGroupChat: boolean;

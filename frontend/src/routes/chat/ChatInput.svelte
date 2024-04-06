@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { getCurrentTime, formatTime } from '$lib/utils';
 	import { sendMessageSocket } from '$lib/websocket';
-	import { conversations, latestMessages, messages, selectedConvoID } from '$lib/stores/stores';
+	import { conversations, latestMessages, selectedConvoID } from '$lib/stores/stores';
 	import type { MessageCreate } from '$lib/interfaces/CreateModels.interface';
 	import type { LatestMessageInfo } from '$lib/interfaces/UnreadConvo.interface';
 	import type { Conversation } from '$lib/interfaces/ResponseModels.interface';
-	import { differenceInHours } from 'date-fns';
+	import { messageStore } from '$lib/stores/messages';
+	import { createEventDispatcher } from 'svelte';
 
 	let inputValue: string = '';
 	let textArea: HTMLTextAreaElement;
@@ -14,6 +15,8 @@
 	export let senderID: number;
 	export let userLang: string;
 	export let userName: string;
+
+	const dispatch = createEventDispatcher();
 
 	function resizeTextArea() {
 		textArea.style.height = 'auto'; // Temporarily shrink to content size
@@ -49,28 +52,44 @@
 			// messages.update((m) => [...m, newMessage]);
 
 			// use this for immediate display first
-			messages.update((m) => {
-				const msgLen = m.length;
-				const arePrevMsgs = msgLen > 0;
-				const sameSenderAsPrev = m[msgLen - 1].sender_id === senderID;
-				const within2Hours = differenceInHours(newMessage.sent_at, m[msgLen - 1].sent_at) < 2;
+			const formattedMsg: MessageCreate = {
+				conversation_id: currConvoID,
+				sender_id: senderID,
+				original_text: message,
+				orig_language: userLang,
+				sent_at: newMessage.sent_at,
+				sender_name: null,
+				display_photo: true
+			};
+			messageStore.sendNewMessage(formattedMsg);
+			dispatch('msgSent');
+			// messageStore.update((state) => {
+			// 	const m = state.messages;
+			// 	const msgLen = m.length;
 
-				if (arePrevMsgs && sameSenderAsPrev && within2Hours) m[msgLen - 1].display_photo = false;
+			// 	if (
+			// 		msgLen > 0 &&
+			// 		m[msgLen - 1].sender_id === senderID &&
+			// 		differenceInHours(newMessage.sent_at, m[msgLen - 1].sent_at) < 2
+			// 	)
+			// 		m[msgLen - 1].display_photo = false;
 
-				const formattedMsg: MessageCreate = {
-					conversation_id: currConvoID,
-					sender_id: senderID,
-					original_text: message,
-					orig_language: userLang,
-					sent_at: newMessage.sent_at,
-					sender_name: null,
-					display_photo: true
-				};
+			// 	const formattedMsg: MessageCreate = {
+			// 		conversation_id: currConvoID,
+			// 		sender_id: senderID,
+			// 		original_text: message,
+			// 		orig_language: userLang,
+			// 		sent_at: newMessage.sent_at,
+			// 		sender_name: null,
+			// 		display_photo: true
+			// 	};
 
-				m = [...m, formattedMsg];
-
-				return m;
-			});
+			// 	return {
+			// 		...state,
+			// 		messages: [...m, formattedMsg],
+			// 		offset: state.offset + 1
+			// 	};
+			// });
 
 			// When we send a msg, the corresponding conversation must be put at top of list
 			conversations.update((currConversations) => {
@@ -111,7 +130,7 @@
 {#if $selectedConvoID !== -10}
 	<footer>
 		<form
-			class="flex px-[10px] pb-[11px] pt-[14px] bg-white border-t border-solid border-gray-200"
+			class="flex px-[15px] pb-4 pt-[12px] bg-neutral-950"
 			on:submit|preventDefault={sendMessage}
 		>
 			<!-- <input
@@ -125,7 +144,7 @@
 				bind:value={inputValue}
 				placeholder="Write a message..."
 				rows="1"
-				class="flex-grow resize-none border-solid border border-blue-300 rounded-xl py-[6px] px-[10px] mr-[10px] focus:outline-none max-h-[calc(3em*5)] no-scrollbar"
+				class="flex-grow resize-none rounded-2xl py-[6px] px-[10px] mr-[10px] focus:outline-none max-h-[calc(3em*5)] no-scrollbar text-white bg-neutral-950 border border-neutral-700"
 				on:input={resizeTextArea}
 				on:keydown={handleKeyPress}
 			></textarea>

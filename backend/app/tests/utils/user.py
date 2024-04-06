@@ -1,11 +1,11 @@
 import random
-from pydantic import EmailStr
 from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
 from app.models import User
 from app.schemas import UserCreate
+from app.schemas.email_type import CustomEmailStr
 from .utils import random_string
 
 
@@ -29,7 +29,7 @@ async def create_random_user_stochastic(
 
 async def create_random_user(
     db: AsyncSession,
-    email: EmailStr,
+    email: CustomEmailStr,
     password: str,
     fname_len: int,
     lname_len: int,

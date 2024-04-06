@@ -6,6 +6,9 @@ export default {
       fontFamily: {
         sans: ['Helvetica', 'Arial', 'sans-serif'],
       },
+      backgroundImage: {
+        hero: "url('/images/bg-image.webp')",
+      },
     },
   },
   plugins: [],

@@ -10,9 +10,11 @@ from app.handlers import user_already_exists_exception_handler
 
 from app.api.api_v1.api import api_router
 from app.core.config import settings
+from app.cron.db_cleanup import delete_expired_unverified_users
+from app.logger import setup_logger
 
 
-# redis_client: redis.Redis
+setup_logger()
 
 
 @asynccontextmanager
@@ -21,6 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
         host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True
     )
     # redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+    await delete_expired_unverified_users()
     yield
     await app.state.redis_client.aclose()
 
