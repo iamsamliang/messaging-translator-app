@@ -168,5 +168,5 @@ cython_debug/
 dump.rdb
 
 # Poetry for Elastic Beanstalk
-poetry.lock
-pyproject.toml
+# poetry.lock
+# pyproject.toml
