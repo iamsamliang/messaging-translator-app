@@ -166,3 +166,7 @@ cython_debug/
 
 # Redis database snapshots
 dump.rdb
+
+# Poetry for Elastic Beanstalk
+# poetry.lock
+# pyproject.toml
