@@ -6,6 +6,7 @@ import { messageStore } from "./stores/messages";
 import { getMsgPreviewTimeValue } from "./utils";
 import clientSettings from "./config/config.client";
 import { websocketNotifStore } from "./stores/websocketNotification";
+import { msgContainerScrollSignal } from "./stores/msgContainerScrollSignal";
 
 // src/lib/websocket.js
 let socket: WebSocket;
@@ -180,6 +181,7 @@ export function connectWebSocket() {
                         }
                         // update messages UI for real-time
                         messageStore.receiveMessage(receivedMessage);
+                        msgContainerScrollSignal.scrollToBottom();
                         // messageStore.update(state => {
                         //     const m = state.messages;
                         //     const msgLen = m.length;

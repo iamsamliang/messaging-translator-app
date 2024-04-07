@@ -1,10 +1,19 @@
-from pydantic import model_validator
+from typing import Any, Annotated
+from pydantic import model_validator, AnyUrl, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import find_dotenv, load_dotenv
 from typing_extensions import Self
 from pathlib import Path
 
 load_dotenv(find_dotenv(".env"))
+
+
+def parse_cors(v: Any) -> list[str] | str:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",")]
+    elif isinstance(v, list | str):
+        return v
+    raise ValueError(v)
 
 
 class Settings(BaseSettings):
@@ -28,6 +37,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_HOST: str
     REDIS_PORT: int
+
+    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = (
+        []
+    )
 
     # for configuring fastapi-mail to send emails
     MAIL_USERNAME: str
@@ -56,5 +69,5 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=True)
 
 
-settings = Settings()
+settings = Settings()  # type: ignore
 # (pydantic finds the arguments)

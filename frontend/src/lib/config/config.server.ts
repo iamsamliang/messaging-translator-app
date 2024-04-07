@@ -1,5 +1,7 @@
 // Load environment variables from .env file
-import 'dotenv/config'
+// import 'dotenv/config'
+import { RATE_LIMITER_REDIS_TOKEN, RATE_LIMITER_REDIS_URL, RECAPTCHA_SECRET_KEY } from '$env/static/private';
+import { PUBLIC_API_BASE_URL } from '$env/static/public'
 
 // Define a TypeScript interface for the configuration
 interface ServerConfig {
@@ -11,10 +13,10 @@ interface ServerConfig {
 
 // Implement the configuration with environment variables
 const serverSettings: ServerConfig = {
-  apiBaseURL: process.env.VITE_API_BASE_URL!,
-  RECAPTCHA_SECRET_KEY: process.env.RECAPTCHA_SECRET_KEY!,
-  RATE_LIMITER_REDIS_TOKEN: process.env.RATE_LIMITER_REDIS_TOKEN!,
-  RATE_LIMITER_REDIS_URL: process.env.RATE_LIMITER_REDIS_URL!
+  apiBaseURL: PUBLIC_API_BASE_URL!,
+  RECAPTCHA_SECRET_KEY: RECAPTCHA_SECRET_KEY!,
+  RATE_LIMITER_REDIS_TOKEN: RATE_LIMITER_REDIS_TOKEN!,
+  RATE_LIMITER_REDIS_URL: RATE_LIMITER_REDIS_URL!
 };
 
 // Assert all necessary configurations are set

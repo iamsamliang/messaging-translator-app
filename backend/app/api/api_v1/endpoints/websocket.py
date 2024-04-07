@@ -406,6 +406,7 @@ async def websocket_endpoint(
                                 for channel, message in pub_messages
                             )
                         )
+                        break
                     except Exception as e:
                         logging.error(
                             f"Error during message publishing, attempt {attempt + 1}",

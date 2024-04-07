@@ -26,7 +26,7 @@ async def generate_presigned_get_url(
     # cache -> {cache_key: GET url}
     cache_key = f"{object_key}:GET"
 
-    session = boto3.Session(profile_name="saml")
+    session = boto3.Session(profile_name="saml-east")
     s3_client = session.client("s3")
 
     url = s3_client.generate_presigned_url(
@@ -45,7 +45,7 @@ async def generate_presigned_get_url(
 
 
 def delete_object(bucket_name: str, object_key: str) -> None:
-    session = boto3.Session(profile_name="saml")
+    session = boto3.Session(profile_name="saml-east")
     s3_client = session.client("s3")
 
     s3_client.delete_object(Bucket=bucket_name, Key=object_key)

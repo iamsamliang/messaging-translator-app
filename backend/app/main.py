@@ -30,13 +30,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
-allowed_origins = ["http://localhost:5173"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_methods=["*"],
-    allow_credentials=True,
-)
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS
+        ],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=True,
+    )
 
 app.include_router(api_router)
 

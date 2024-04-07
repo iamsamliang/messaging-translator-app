@@ -8,6 +8,7 @@
 	import LazyList from '$lib/components/LazyList.svelte';
 	import { messageStore } from '$lib/stores/messages';
 	import clientSettings from '$lib/config/config.client';
+	import { msgContainerScrollSignal } from '$lib/stores/msgContainerScrollSignal';
 
 	export let currUserID: number;
 
@@ -44,6 +45,12 @@
 	$: if (scrollBottomSignal) {
 		scrollToBottom();
 		dispatch('scrolledBottom');
+	}
+
+	// Detect when new messages arrive and scroll down
+	$: if ($msgContainerScrollSignal) {
+		scrollToBottom();
+		msgContainerScrollSignal.reset();
 	}
 </script>
 
