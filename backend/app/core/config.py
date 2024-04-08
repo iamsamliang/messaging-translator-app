@@ -1,5 +1,12 @@
 from typing import Any, Annotated
-from pydantic import model_validator, AnyUrl, BeforeValidator
+from pydantic import (
+    model_validator,
+    AnyUrl,
+    BeforeValidator,
+    PostgresDsn,
+    computed_field,
+)
+from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import find_dotenv, load_dotenv
 from typing_extensions import Self
@@ -34,7 +41,25 @@ class Settings(BaseSettings):
 
     FRONTEND_HOST: str
 
-    DATABASE_URL: str
+    # Database
+    RDS_HOSTNAME: str
+    RDS_PORT: int
+    RDS_USERNAME: str
+    RDS_PASSWORD: str
+    RDS_DB_NAME: str
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        return MultiHostUrl.build(
+            scheme="postgresql+psycopg",
+            username=self.RDS_USERNAME,
+            password=self.RDS_PASSWORD,
+            host=self.RDS_HOSTNAME,
+            port=self.RDS_PORT,
+            path=self.RDS_DB_NAME,
+        )
+
     REDIS_HOST: str
     REDIS_PORT: int
 

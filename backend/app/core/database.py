@@ -2,10 +2,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.core.config import settings
 
-db_url = settings.DATABASE_URL
-
 engine = create_async_engine(
-    url=db_url,
+    url=str(settings.SQLALCHEMY_DATABASE_URI),
     echo=False,
     # pool_size=10, # optimization params
     # max_overflow=20,
