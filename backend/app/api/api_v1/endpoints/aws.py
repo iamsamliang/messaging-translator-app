@@ -60,7 +60,7 @@ async def generate_presigned_post(
         # serialization issues
         return json.loads(cached_post_response)  # type: ignore
 
-    session = boto3.Session(profile_name="saml-east")
+    session = boto3.Session()
     s3_client = session.client("s3")
 
     try:
