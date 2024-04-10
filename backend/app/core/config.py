@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     RDS_USERNAME: str
     RDS_PASSWORD: str
     RDS_DB_NAME: str
+    DB_QUERY_PARAMS: str
 
     @computed_field  # type: ignore[misc]
     @property
@@ -58,6 +59,7 @@ class Settings(BaseSettings):
             host=self.RDS_HOSTNAME,
             port=self.RDS_PORT,
             path=self.RDS_DB_NAME,
+            query=self.DB_QUERY_PARAMS,
         )
 
     REDIS_HOST: str
@@ -69,16 +71,19 @@ class Settings(BaseSettings):
 
     # for configuring fastapi-mail to send emails
     MAIL_USERNAME: str
-    MAIL_PASSWORD: str
+    MAIL_PASSWORD: str  # For GMAIL, enable 2FA and use an App Password
     MAIL_SERVER: str
-    MAIL_PORT: int = 587
+    MAIL_PORT: int = 587  # Use 465 for SSL. Use TLS bc it's the newer version of SSL
     MAIL_FROM: str
     MAIL_FROM_NAME: str = PROJECT_NAME
-    MAIL_STARTTLS: bool = True
-    MAIL_SSL_TLS: bool = False
+    MAIL_STARTTLS: bool = True  # To use TLS. True for port 587
+    MAIL_SSL_TLS: bool = False  # To use SSL. False for port 587
     MAIL_TEMPLATES_DIR: Path = Path(__file__).parent.parent / "templates" / "email"
+    # SMTP server will authenticate using the provided MAIL_USERNAME AND MAIL_PW
     MAIL_USE_CREDENTIALS: bool = True
+    # Ensures that the connection is secure and the SMTP server is trusted. Set to True in production
     MAIL_VALIDATE_CERTS: bool = True
+    MAIL_DEBUG: bool = False
 
     @model_validator(mode="after")
     def _set_default_emails_from(self) -> Self:

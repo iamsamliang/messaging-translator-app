@@ -181,7 +181,7 @@
 	<footer class="mt-auto">
 		<div class="flex flex-col justify-center items-center mb-5 gap-1">
 			<span class="text-white">&copy; Sam Liang</span>
-			<span class="text-white text-xs">For code inquries, iamsamliang8@gmail.com</span>
+			<span class="text-white text-xs">For code inquries, speakeaisy8@gmail.com</span>
 		</div>
 	</footer>
 

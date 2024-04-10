@@ -16,7 +16,7 @@ conf = ConnectionConfig(
     USE_CREDENTIALS=settings.MAIL_USE_CREDENTIALS,
     VALIDATE_CERTS=settings.MAIL_VALIDATE_CERTS,
     TEMPLATE_FOLDER=settings.MAIL_TEMPLATES_DIR,
-    MAIL_DEBUG=True,
+    MAIL_DEBUG=settings.MAIL_DEBUG,
     SUPPRESS_SEND=False,
 )
 
