@@ -10,6 +10,7 @@ export async function load({ url, fetch }) {
         		});
     }
 
+    console.log(token);
     const response: Response = await fetch(`${clientSettings.apiBaseURL}/users/verify-account`, {
         method: 'POST',
         headers: {
@@ -17,9 +18,11 @@ export async function load({ url, fetch }) {
         },
         body: JSON.stringify({ verification_token: token })
     });
+    console.log(response.status);
 
     if (!response.ok) {
         const errorResponse = await response.json();
+        console.log(errorResponse);
         error(400, {
                     message: errorResponse.detail
                 });
