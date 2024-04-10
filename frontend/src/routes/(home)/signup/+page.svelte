@@ -29,7 +29,7 @@
 		</div>
 	{/if}
 	<form
-		class="bg-gray-900 shadow-md rounded-xl px-8 pt-6 pb-8 mb-4 w-[85%] min-[450px]:w-[25rem] md:w-[30rem] lg:w-[35rem]"
+		class="bg-gray-900 shadow-md rounded-xl px-8 pt-5 pb-4 mb-4 w-[85%] min-[450px]:w-[25rem] md:w-[30rem] lg:w-[35rem]"
 		method="POST"
 		action="?/create"
 		use:enhance
@@ -161,7 +161,7 @@
 			{/if}
 		</div>
 
-		<div class="flex flex-col justify-center items-center mb-6">
+		<div class="flex flex-col justify-center items-center mb-4">
 			<div id="recaptcha-div" class="scale-75 min-[500px]:scale-100"></div>
 			{#if form?.fieldErrors?.['g-recaptcha-response']}
 				<label for="g-recaptcha-response" class="flex text-sm text-red-500 mt-2">
