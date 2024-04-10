@@ -1,7 +1,6 @@
 import json
 import asyncio
 import logging
-from typing import Annotated
 from app.exceptions import OpenAIAuthenticationException
 from fastapi.websockets import WebSocketState
 import openai
@@ -13,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models, crud, schemas
 from app import translation
-from app.api.dependencies import get_db, verify_current_user_w_cookie
+from app.api.dependencies import get_db
 from app.utils.aws import (
     get_cached_presigned_obj,
     CacheMethod,
@@ -23,7 +22,6 @@ from app.core.config import settings
 
 from fastapi import (
     APIRouter,
-    Depends,
     WebSocket,
     WebSocketDisconnect,
     WebSocketException,
@@ -223,12 +221,38 @@ async def create_message_ws(
 @router.websocket("/comms")
 async def websocket_endpoint(
     websocket: WebSocket,
-    user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
+    token: str,
+    user_email: str,
 ) -> None:
-    await websocket.accept()
     # redis_client is shared among all consumers connected to
     # this websocket endpoint (efficiency)
     redis_client: Redis = websocket.app.state.redis_client
+
+    try:
+        # User Auth
+        redis_ws_token = await redis_client.get(user_email)
+
+        if not redis_ws_token or redis_ws_token != token:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
+        # after used to authenticate user in websocket endpoint, delete it from redis cache
+        await redis_client.delete(user_email)
+    except Exception as e:
+        logging.error(
+            "Error in authenticating websocket connection or Redis Error",
+            exc_info=True,
+        )
+        return
+
+    user = None
+    async for db in get_db():
+        user = await crud.user.get_by_email(db=db, email=user_email)
+    if not user:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    await websocket.accept()
     listener_task = None
     subscription_task = None
 
