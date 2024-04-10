@@ -1,12 +1,15 @@
 from typing import Annotated
 from datetime import datetime
+import secrets
 
 from app.schemas.email_type import CustomEmailStr
+from redis.asyncio import Redis
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     HTTPException,
+    Request,
     status,
     Response,
     Form,
@@ -48,8 +51,20 @@ async def get_me_default(
 async def get_me_extra_info(
     current_user: Annotated[
         models.User, Depends(verify_current_user_factory(type=VerifyType.EXTRA_INFO))
-    ]
+    ],
+    request: Request,
 ) -> models.User:
+    websocket_token_val = secrets.token_urlsafe(64)
+    setattr(current_user, "websocket_token", websocket_token_val)
+
+    # set websocket token val in a Redis cache with a TTL of 3 min
+    redis_client: Redis = request.app.state.redis_client
+    await redis_client.set(
+        current_user.email,
+        websocket_token_val,
+        ex=(settings.WEBSOCKET_ACCESS_TOKEN_EXPIRE_SECS),
+    )
+
     return current_user
 
 

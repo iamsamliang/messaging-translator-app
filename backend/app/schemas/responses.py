@@ -54,6 +54,7 @@ class UserOut(BaseModel):
 
 
 class UserOutExtraInfo(UserOut):
+    websocket_token: str
     presigned_url: str | None
     top_n_convos: list["ConversationResponse"]
 
