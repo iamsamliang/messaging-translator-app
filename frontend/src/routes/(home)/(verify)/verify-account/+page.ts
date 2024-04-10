@@ -15,7 +15,7 @@ export async function load({ url, fetch }) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ verification_token: token })
+        body: JSON.stringify({ token })
     });
 
     if (!response.ok) {
