@@ -54,8 +54,6 @@ export const actions = {
                 api_key: userSchema.apiKey,
             }
 
-            console.log(`BACKEND_BASE_URL: ${serverSettings.apiBaseURL}`);
-
 			const response: Response = await fetch(`${serverSettings.apiBaseURL}/users`, {
 				method: 'POST',
 				headers: {
