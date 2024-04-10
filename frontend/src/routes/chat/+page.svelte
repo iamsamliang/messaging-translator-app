@@ -388,7 +388,7 @@
 
 	onMount(() => {
 		toast.remove();
-		connectWebSocket();
+		connectWebSocket(data.user.websocket_token, data.user.email);
 	});
 
 	onDestroy(() => {

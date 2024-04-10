@@ -25,10 +25,10 @@ function unsubscribeAll(): void {
     selConvoUnsubscribe();
 }
 
-export function connectWebSocket() {
+export function connectWebSocket(websocketAuthToken: string, currUserEmail: string) {
     if (typeof window !== "undefined") { // Check if running in browser
         try {
-            socket = new WebSocket(`${clientSettings.websocketBaseUrl}/ws/comms`);
+            socket = new WebSocket(`${clientSettings.websocketBaseUrl}/ws/comms?token=${encodeURIComponent(websocketAuthToken)}&email=${encodeURIComponent(currUserEmail)}`);
 
             socket.onerror = (error) => {
                 websocketNotifStore.sendNotification("An error occured with your connection. Please refresh the page.")
