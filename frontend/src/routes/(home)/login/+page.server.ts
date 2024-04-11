@@ -47,7 +47,13 @@ export const actions = {
             const expireTimestamp = JSON.parse(jsonPayload).exp
             const expireDate: Date = new Date(expireTimestamp * 1000); // Convert to milliseconds (necessary)
 
-            cookies.set('jwt', resData.access_token, { path: "/", expires: expireDate});
+            cookies.set('jwt', resData.access_token, { 
+                path: "/",
+                expires: expireDate,
+                secure: true,
+                httpOnly: true,
+                sameSite: 'none',
+            });
 
         } catch (error) {
             if (error instanceof Error) {

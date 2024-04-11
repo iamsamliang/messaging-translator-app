@@ -44,7 +44,7 @@ async def subscription_manager(
 
 
 async def rlistener(
-    user: models.User,
+    user_id: int,
     websocket: WebSocket,
     channel: PubSub,
     subscription_queue: asyncio.Queue[tuple[str, str]],
@@ -58,7 +58,7 @@ async def rlistener(
                 msg_type = msg["type"]
 
                 # channel for handling text messages
-                if channel_name == str(user.id):
+                if channel_name == str(user_id):
                     if msg_type == "message":
                         await websocket.send_text(message["data"])
                     elif msg_type == "create_convo":
@@ -103,7 +103,7 @@ async def rlistener(
 
 
 async def create_message_ws(
-    db: AsyncSession, obj_in: schemas.MessageCreate, curr_user_id: int
+    db: AsyncSession, obj_in: schemas.MessageCreate, curr_user: models.User
 ) -> tuple[models.Message, dict[str, str], list[models.Translation]]:
     try:
         # 1) use conversation_id to get all users in the conversation, exclude sender
@@ -138,13 +138,6 @@ async def create_message_ws(
                         chat_history.append((history_msg.sender_id, tls.translation))
 
         seen_translations = {obj_in.orig_language: obj_in.original_text}
-        curr_user = await crud.user.get(db=db, id=curr_user_id)
-
-        if curr_user is None:
-            raise WebSocketException(
-                code=status.WS_1014_BAD_GATEWAY,
-                reason="You (user) do not exist",
-            )
 
         message = await crud.message.create(db=db, obj_in=obj_in)
         await db.flush()
@@ -246,8 +239,15 @@ async def websocket_endpoint(
         return
 
     user = None
+    user_convos = []
     async for db in get_db():
         user = await crud.user.get_by_email(db=db, email=user_email)
+        if not user:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
+        user_convos = await user.awaitable_attrs.conversations
+
     if not user:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
@@ -263,7 +263,7 @@ async def websocket_endpoint(
     async with redis_client.pubsub() as pubsub:
         try:
             await pubsub.subscribe(f"{user.id}")
-            for convo in await user.awaitable_attrs.conversations:
+            for convo in user_convos:
                 # await pubsub.subscribe(f"chat_{convo.id}_{user.target_language}")
                 await pubsub.subscribe(f"chat_{convo.id}")
 
@@ -276,7 +276,7 @@ async def websocket_endpoint(
 
             # start message listener task
             listener_task = asyncio.create_task(
-                rlistener(user, websocket, pubsub, subscription_queue)
+                rlistener(user.id, websocket, pubsub, subscription_queue)
             )
 
             # handles this user sending a message to this group chat
@@ -302,6 +302,14 @@ async def websocket_endpoint(
                                 reason="User is not authorized to send messages to this chat",
                             )
 
+                        # update user
+                        user = await crud.user.get(db=db, id=user.id)
+                        if user is None:
+                            raise WebSocketException(
+                                code=status.WS_1014_BAD_GATEWAY,
+                                reason="You (user) do not exist",
+                            )
+
                         obj_in = schemas.MessageCreate(
                             conversation_id=message["conversation_id"],
                             sender_id=message["sender_id"],
@@ -310,7 +318,7 @@ async def websocket_endpoint(
                         )
 
                         new_message, _, created_translations = await create_message_ws(
-                            db=db, obj_in=obj_in, curr_user_id=user.id
+                            db=db, obj_in=obj_in, curr_user=user
                         )
                 except (openai.AuthenticationError, OpenAIAuthenticationException):
                     await websocket.send_json(
