@@ -1,5 +1,5 @@
 from typing import Annotated
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, UTC
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -37,7 +37,7 @@ async def login_for_token(
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token, expire_date = security.create_access_token(
-        data={"sub": f"userid:{login_user.id}", "iat": datetime.utcnow()},
+        data={"sub": f"userid:{login_user.id}", "iat": datetime.now(UTC)},
         expires_delta=access_token_expires,
     )
 

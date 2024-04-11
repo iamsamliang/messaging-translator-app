@@ -1,5 +1,5 @@
 from typing import Any
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 
 from jose import jwt, JWTError
 from fastapi import HTTPException, status
@@ -29,7 +29,7 @@ def create_access_token(
     data: dict[str, Any], expires_delta: timedelta
 ) -> tuple[str, datetime]:
     to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
+    expire = datetime.now(UTC) + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt, expire
