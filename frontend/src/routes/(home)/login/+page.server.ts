@@ -3,7 +3,7 @@ import serverSettings from '$lib/config/config.server.js';
 import { rateLimiter } from '$lib/server/rate-limiter.js';
 
 export const actions = {
-    login: async ({ request, getClientAddress, fetch }) => {
+    login: async ({ request, getClientAddress, fetch, setHeaders }) => {
         const formData: FormData = await request.formData();
 
         try {
@@ -34,6 +34,15 @@ export const actions = {
                 }
                 throw new Error(errorResponse.detail);
 			}
+
+            const setCookieHeader = response.headers.get('set-cookie');
+
+            if (setCookieHeader) {
+                // Forward the "Set-Cookie" header to the client
+                setHeaders({
+                    'set-cookie': setCookieHeader
+                });
+            }
 
 			// const resData = await response.json();
 
