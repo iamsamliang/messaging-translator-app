@@ -7,12 +7,12 @@ export const actions = {
         const formData: FormData = await request.formData();
 
         try {
-            const inputEmail = formData.get("username")?.toString() as string;
-            const userIP = getClientAddress();
-            const { success: successIP } = await rateLimiter.loginIP.limit(userIP);
-            if (!successIP) throw new Error(`Attempted login too many times. Please try again later.`);
-            const { success: successEmail } = await rateLimiter.loginEmail.limit(inputEmail)
-            if (!successEmail) throw new Error(`Attempted login too many times. Please try again later.`);
+            // const inputEmail = formData.get("username")?.toString() as string;
+            // const userIP = getClientAddress();
+            // const { success: successIP } = await rateLimiter.loginIP.limit(userIP);
+            // if (!successIP) throw new Error(`Attempted login too many times. Please try again later.`);
+            // const { success: successEmail } = await rateLimiter.loginEmail.limit(inputEmail)
+            // if (!successEmail) throw new Error(`Attempted login too many times. Please try again later.`);
 
             const response: Response = await fetch(`${serverSettings.apiBaseURL}/login/access-token`, {
                 method: "POST",
