@@ -25,12 +25,14 @@ class VerifyType(str, Enum):
 # Things to implement: refresh tokens, Token Blacklisting / Revocation, Rate Limiting on Authentication Endpoints, Logging for authentication attempts and token issues, Scope and Permission Checks (which actiosn can they perform), logging out (done on client side by deleting the stored token as it is not stored on the backend, so backend doesn't have to do anything. Token blacklisting unnecessary and introduces more complexity)
 
 
-def create_access_token(data: dict[str, Any], expires_delta: timedelta) -> str:
+def create_access_token(
+    data: dict[str, Any], expires_delta: timedelta
+) -> tuple[str, datetime]:
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return encoded_jwt, expire
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

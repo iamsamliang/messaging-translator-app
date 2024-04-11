@@ -259,7 +259,6 @@
 			});
 
 			if (!response.ok) {
-				const errorResponse = await response.json();
 				formErrorMsg = 'Failed to update profile';
 				return;
 			}

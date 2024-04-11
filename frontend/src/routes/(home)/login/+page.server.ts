@@ -3,7 +3,7 @@ import serverSettings from '$lib/config/config.server.js';
 import { rateLimiter } from '$lib/server/rate-limiter.js';
 
 export const actions = {
-    login: async ({ cookies, request, getClientAddress }) => {
+    login: async ({ request, getClientAddress }) => {
         const formData: FormData = await request.formData();
 
         try {
@@ -34,26 +34,26 @@ export const actions = {
                 throw new Error(errorResponse.detail);
 			}
 
-			const resData = await response.json();
+			// const resData = await response.json();
 
-            const token = resData.access_token;
+            // const token = resData.access_token;
             
-            // decode token to get expire date for cookie
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            const expireTimestamp = JSON.parse(jsonPayload).exp
-            const expireDate: Date = new Date(expireTimestamp * 1000); // Convert to milliseconds (necessary)
+            // decode token to get expire date for setting cookie
+            // const base64Url = token.split('.')[1];
+            // const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            // const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            //     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            // }).join(''));
+            // const expireTimestamp = JSON.parse(jsonPayload).exp
+            // const expireDate: Date = new Date(expireTimestamp * 1000); // Convert to milliseconds (necessary)
 
-            cookies.set('jwt', resData.access_token, { 
-                path: "/",
-                expires: expireDate,
-                secure: true,
-                httpOnly: true,
-                sameSite: 'none',
-            });
+            // cookies.set('jwt', resData.access_token, { 
+            //     path: "/",
+            //     expires: expireDate,
+            //     secure: true,
+            //     httpOnly: true,
+            //     sameSite: 'none',
+            // });
 
         } catch (error) {
             if (error instanceof Error) {
