@@ -48,6 +48,6 @@ async def login_for_token(
         expires=expire_date,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
     )
     return {"access_token": access_token, "token_type": "bearer"}

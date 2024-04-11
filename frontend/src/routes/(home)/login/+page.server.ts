@@ -16,7 +16,8 @@ export const actions = {
 
             const response: Response = await fetch(`${serverSettings.apiBaseURL}/login/access-token`, {
                 method: "POST",
-                body: formData
+                body: formData,
+                credentials: 'include'
             });
 
 			if (!response.ok) {
