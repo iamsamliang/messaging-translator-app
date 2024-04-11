@@ -3,7 +3,7 @@ import serverSettings from '$lib/config/config.server.js';
 import { rateLimiter } from '$lib/server/rate-limiter.js';
 
 export const actions = {
-    login: async ({ request, getClientAddress }) => {
+    login: async ({ request, getClientAddress, fetch }) => {
         const formData: FormData = await request.formData();
 
         try {
