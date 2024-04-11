@@ -49,8 +49,14 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_origins=[
             str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS
         ],
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allow_headers=[
+            "Origin",
+            "Content-Type",
+            "Accept",
+            "Authorization",
+            "X-Requested-With",
+        ],
         allow_credentials=True,
     )
 
