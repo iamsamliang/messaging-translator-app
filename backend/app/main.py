@@ -16,13 +16,26 @@ from app.logger import setup_logger
 
 setup_logger()
 
+import logging
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
     app.state.redis_client = redis.Redis(
-        host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        decode_responses=True,
+        ssl=settings.REDIS_SSL,
+        password=settings.REDIS_PASSWORD,
+        # ssl_cert_reqs="none",
     )
-    # redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    try:
+        await app.state.redis_client.ping()
+    except Exception as e:
+        logging.error(f"Error connecting to Redis", exc_info=True)
+        raise e
+
     await delete_expired_unverified_users()
     yield
     await app.state.redis_client.aclose()
