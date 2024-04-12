@@ -534,11 +534,11 @@
 			</div>
 			<hr class="border-t border-neutral-500" />
 			<form
-				class="rounded-xl min-[450px]:px-8 min-[450px]:pb-5 space-y-5"
+				class="rounded-xl min-[450px]:px-8 min-[450px]:pb-5 space-y-4"
 				on:submit|preventDefault={handleProfileUpdate}
 				on:input={clearFormMessages}
 			>
-				<div class="flex flex-col justify-center items-center mb-7">
+				<div class="flex flex-col justify-center items-center">
 					<label
 						for="profilePhoto"
 						class="relative overflow-hidden rounded-full w-11/12 min-[450px]:w-52 group cursor-pointer"
@@ -554,11 +554,24 @@
 								>Upload Profile Picture (JPG only)</span
 							>
 						{:else}
-							<div
-								class="flex justify-center items-center rounded-full w-full border-r-8 border-neutral-100 text-white text-center"
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke-width="1.1"
+								stroke="currentColor"
+								class="w-full object-cover opacity-50"
 							>
-								Upload Profile Picture (JPG only)
-							</div>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+								/>
+							</svg>
+							<span
+								class="absolute inset-0 flex justify-center items-center opacity-100 text-white text-center text-[0.8rem] bg-black bg-opacity-20"
+								>Upload Profile Picture (JPG only)</span
+							>
 						{/if}
 					</label>
 					<input
@@ -668,7 +681,7 @@
 					/>
 				</div>
 
-				<div class="flex flex-col items-center justify-center mt-4 gap-2">
+				<div class="flex flex-col items-center justify-center gap-2">
 					<div class="space-x-3">
 						<button
 							disabled={formValsUnchangedOrEmpty}
