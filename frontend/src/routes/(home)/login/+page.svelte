@@ -9,6 +9,9 @@
 	let errorMsg: string = '';
 
 	async function handleLogin() {
+		incorrect = false;
+		unverified = false;
+		errorMsg = '';
 		const formData = new FormData(loginForm);
 
 		try {
