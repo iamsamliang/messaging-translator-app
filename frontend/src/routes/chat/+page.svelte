@@ -549,26 +549,17 @@
 								alt="User's Avatar"
 								class="w-full object-cover transition-opacity duration-300 ease-in-out group-hover:opacity-50"
 							/>
-						{:else}
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke-width="1.1"
-								stroke="currentColor"
-								class="w-full object-cover transition-opacity duration-300 ease-in-out group-hover:opacity-50"
+							<span
+								class="absolute inset-0 flex justify-center items-center opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100 text-white text-center text-[0.8rem] bg-black bg-opacity-20"
+								>Upload Profile Picture (JPG only)</span
 							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-								/>
-							</svg>
+						{:else}
+							<div
+								class="flex justify-center items-center rounded-full w-full border-r-8 border-neutral-100 text-white text-center"
+							>
+								Upload Profile Picture (JPG only)
+							</div>
 						{/if}
-						<span
-							class="absolute inset-0 flex justify-center items-center opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100 text-white text-center text-[0.8rem] bg-black bg-opacity-20"
-							>Upload Profile Picture (JPG only)</span
-						>
 					</label>
 					<input
 						id="profilePhoto"
@@ -642,6 +633,10 @@
 						id="apiKey"
 						class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none"
 					/>
+					<p class="text-[0.8rem] text-neutral-300">
+						You need to buy OpenAI credits for your account to use your API keys. This is necessary
+						for our translation service.
+					</p>
 				</div>
 
 				<div class="space-y-2">
@@ -659,7 +654,7 @@
 					<label
 						for="confPassword"
 						class="block text-sm font-bold"
-						class:opacity-30={formPassword.length === 0}
+						class:opacity-50={formPassword.length === 0}
 					>
 						Confirm Password
 					</label>
@@ -669,7 +664,7 @@
 						type="password"
 						name="confPassword"
 						id="confPassword"
-						class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none disabled:cursor-not-allowed disabled:opacity-30"
+						class="border border-neutral-700 bg-neutral-950 rounded w-full py-2 px-3 leading-tight focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					/>
 				</div>
 
@@ -677,7 +672,7 @@
 					<div class="space-x-3">
 						<button
 							disabled={formValsUnchangedOrEmpty}
-							class="rounded bg-white py-2 px-4 text-black ring-1 ring-inset ring-gray-400 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+							class="rounded bg-white py-2 px-4 text-black ring-1 ring-inset ring-gray-400 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
 							on:click|preventDefault={() => resetForm(true)}
 						>
 							Reset
@@ -685,7 +680,7 @@
 						<button
 							type="submit"
 							disabled={formValsUnchangedOrEmpty}
-							class="text-white mt-2 py-2 px-4 rounded bg-blue-700 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
+							class="text-white mt-2 py-2 px-4 rounded bg-blue-700 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
 							>Update</button
 						>
 					</div>
@@ -694,13 +689,13 @@
 							{formErrorMsg}
 						</p>
 					{:else if formSuccessMsg}
-						<p class="text-[0.8rem] text-blue-700">
+						<p class="text-[0.8rem] text-blue-600">
 							{formSuccessMsg}
 						</p>
 					{:else if isLoading}
 						<LoadingIcon size="w-7 h-7" />
 					{:else}
-						<p class="text-[0.8rem] text-neutral-200" class:hidden={formValsUnchangedOrEmpty}>
+						<p class="text-[0.8rem] text-neutral-100" class:hidden={formValsUnchangedOrEmpty}>
 							* Unsaved Changes
 						</p>
 					{/if}

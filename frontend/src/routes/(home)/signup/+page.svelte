@@ -34,7 +34,7 @@
 		action="?/create"
 		use:enhance
 	>
-		<div class="mb-4">
+		<div class="mb-3">
 			<label for="firstname" class="block text-sm font-bold mb-2"> First Name </label>
 			<input
 				type="text"
@@ -51,7 +51,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-4">
+		<div class="mb-3">
 			<label for="lastname" class="block text-sm font-bold mb-2"> Last Name </label>
 			<input
 				type="text"
@@ -68,7 +68,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-4">
+		<div class="mb-3">
 			<label for="email" class="block text-sm font-bold mb-2"> Email </label>
 			<input
 				type="email"
@@ -84,7 +84,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-4">
+		<div class="mb-3">
 			<label for="password" class="block text-sm font-bold mb-2"> Password </label>
 			<input
 				type="password"
@@ -99,7 +99,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-4">
+		<div class="mb-3">
 			<label for="confPassword" class="block text-sm font-bold mb-2"> Confirm Password </label>
 			<input
 				type="password"
@@ -136,7 +136,7 @@
 			{/if}
 		</div>
 
-		<!-- <div class="mb-4">
+		<!-- <div class="mb-3">
 				<label for="language" class="block text-sm font-bold mb-2"> Default Language </label>
 				<input
 					type="string"
@@ -146,14 +146,18 @@
 				/>
 			</div> -->
 
-		<div class="mb-6">
-			<label for="apiKey" class="block text-sm font-bold mb-2"> OpenAI API Key </label>
+		<div class="mb-4 space-y-2">
+			<label for="apiKey" class="block text-sm font-bold"> OpenAI API Key </label>
 			<input
 				type="text"
 				name="apiKey"
 				id="apiKey"
 				class="shadow border rounded w-full py-[6px] px-3 leading-tight focus:outline-none text-black"
 			/>
+			<p class="text-[0.8rem] text-gray-400">
+				You need to buy OpenAI credits for your account to use your API keys. This is necessary for
+				our translation service.
+			</p>
 			{#if form?.fieldErrors?.apiKey}
 				<label for="apiKey" class="block text-sm text-red-500 mt-2">
 					{form.fieldErrors.apiKey[0]}

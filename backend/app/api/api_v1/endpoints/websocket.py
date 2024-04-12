@@ -280,6 +280,8 @@ async def websocket_endpoint(
             )
 
             # handles this user sending a message to this group chat
+            user_id = user.id
+            user_profile = user.profile_photo
             while True:
                 data = (
                     await websocket.receive_text()
@@ -294,7 +296,7 @@ async def websocket_endpoint(
                     async for db in get_db():
                         if not (
                             await crud.conversation.is_user_in_conversation(
-                                db=db, user_id=user.id, conversation_id=chat_id
+                                db=db, user_id=user_id, conversation_id=chat_id
                             )
                         ):
                             raise WebSocketException(
@@ -303,12 +305,14 @@ async def websocket_endpoint(
                             )
 
                         # update user
-                        user = await crud.user.get(db=db, id=user.id)
+                        user = await crud.user.get(db=db, id=user_id)
                         if user is None:
                             raise WebSocketException(
                                 code=status.WS_1014_BAD_GATEWAY,
                                 reason="You (user) do not exist",
                             )
+                        user_id = user.id
+                        user_profile = user.profile_photo
 
                         obj_in = schemas.MessageCreate(
                             conversation_id=message["conversation_id"],
@@ -324,24 +328,24 @@ async def websocket_endpoint(
                     await websocket.send_json(
                         {
                             "type": "error",
-                            "data": "Your message failed to send because your OpenAI API key is invalid or expired. Please update the key in your user settings.",
+                            "data": "Your message failed to send because your OpenAI API key is invalid or expired. Please update the key in your user settings. Note, you need to buy OpenAI account credits to use your API keys.",
                         }
                     )
 
                     continue
                 except openai.OpenAIError as e:
-                    error_message = "Your message failed to send because an error occurred with the translation service."
+                    error_message = "Your message failed to send because an error occurred with the translation service. Note, you need to buy OpenAI account credits to use your API keys."
 
                     if isinstance(e, openai.RateLimitError):
-                        error_message = "Your message failed to send because your OpenAI rate limit exceeded. Check your OpenAI API usage."
+                        error_message = "Your message failed to send because your OpenAI rate limit exceeded. Check your OpenAI API usage. Note, you need to buy OpenAI account credits to use your API keys."
                     elif isinstance(e, openai.APIConnectionError):
-                        error_message = "Issue connecting to OpenAI services. Please wait a few seconds and try sending your message again."
+                        error_message = "Issue connecting to OpenAI services. Please wait a few seconds and try sending your message again. Note, you need to buy OpenAI account credits to use your API keys."
                     elif isinstance(e, (openai.InternalServerError, openai.APIError)):
-                        error_message = "A server error occured on OpenAI's side. Check their status page for any ongoing incidents before trying to send your message again."
+                        error_message = "A server error occured on OpenAI's side or you didn't buy OpenAI account credits which are needed to use your API keys and the GPT API. Check their status page for any ongoing incidents and your account credits before trying to send your message again."
                     elif isinstance(e, openai.APITimeoutError):
-                        error_message = "Your message took too long to translate and OpenAI closed the connection. Wait a few seconds and try sending your message again. If it still doesn't work, try splitting up your message into smaller chunks."
+                        error_message = "Your message took too long to translate and OpenAI closed the connection. Wait a few seconds and try sending your message again. If it still doesn't work, try splitting up your message into smaller chunks. Note, you need to buy OpenAI account credits to use your API keys."
                     elif isinstance(e, openai.PermissionDeniedError):
-                        error_message = "Your message failed to send because you don't have access to GPT-4. Ensure you are using a valid and correct OpenAI API key."
+                        error_message = "Your message failed to send because you don't have access to GPT-4. Ensure you are using a valid and correct OpenAI API key. Note, you need to buy OpenAI account credits to use your API keys."
 
                     await websocket.send_json({"type": "error", "data": error_message})
 
@@ -366,9 +370,9 @@ async def websocket_endpoint(
                 # Ignore errors bc not being able to get presigned URL
                 # shouldn't cancel sending message
                 try:
-                    if user.profile_photo:
+                    if user_profile:
                         _, cached_url = await get_cached_presigned_obj(
-                            object_key=user.profile_photo,
+                            object_key=user_profile,
                             redis_client=redis_client,
                             method=CacheMethod.GET,
                         )
@@ -376,7 +380,7 @@ async def websocket_endpoint(
                         if not cached_url:  # sender_id expired
                             new_url = await generate_presigned_get_url(
                                 bucket_name=settings.S3_BUCKET_NAME,
-                                object_key=user.profile_photo,
+                                object_key=user_profile,
                                 expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
                                 redis_client=redis_client,
                             )
@@ -392,7 +396,7 @@ async def websocket_endpoint(
                 for translation in created_translations:  # type: ignore
                     # used to publish to: f"chat_{chat_id}_{translation.language}"
                     if (
-                        translation.target_user_id != user.id
+                        translation.target_user_id != user_id
                     ):  # don't send to sender's channel
                         pub_messages.append(
                             (

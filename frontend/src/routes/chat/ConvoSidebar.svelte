@@ -419,7 +419,7 @@
 	<div
 		on:click={closeModal}
 		transition:fade={{ duration: 250 }}
-		class="fixed left-0 top-0 bg-black bg-opacity-50 w-screen h-screen flex justify-center items-center z-30"
+		class="fixed left-0 top-0 bg-black bg-opacity-80 w-screen h-screen flex justify-center items-center z-30"
 	>
 		<div
 			on:click|stopPropagation
@@ -626,43 +626,6 @@
 			/>
 		</VirtualScroll>
 	</div>
-
-	<!-- Go to User Settings -->
-	<!-- <button
-		class="mt-auto flex items-center group border-t-2 border-t-gray-300 cursor-pointer justify-center min-[1047px]:justify-start"
-		on:click={openUserSettings}
-	>
-		<div class="min-[1047px]:ml-4 min-[1047px]:mr-3 my-2 w-12 h-12 rounded-full overflow-hidden">
-			{#if $currUser.presigned_url}
-				<img
-					src={$currUser.presigned_url}
-					alt="User Settings"
-					class="w-full transition-transform duration-400 ease-in-out group-hover:scale-110 group-hover:shadow-glow"
-				/>
-			{:else}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke-width="1.1"
-					stroke="currentColor"
-					class="w-full transition-transform duration-400 ease-in-out group-hover:scale-110 group-hover:shadow-glow"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-					/>
-				</svg>
-			{/if}
-		</div>
-		<h1
-			class="text-lg transition-transform duration-400 ease-in-out group-hover:scale-105 hidden min-[1047px]:flex"
-		>
-			{$currUser.first_name}
-			{$currUser.last_name}
-		</h1>
-	</button> -->
 </aside>
 
 <style>
