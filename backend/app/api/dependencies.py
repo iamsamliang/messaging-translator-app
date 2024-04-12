@@ -51,11 +51,11 @@ def verify_current_user_factory(type: VerifyType) -> Callable[..., models.User]:
 
 async def verify_current_user_w_cookie(
     db: Annotated[AsyncSession, Depends(get_db)],
-    jwt: Annotated[str, Cookie()],
+    token: Annotated[str, Depends(reusable_oauth2)],
 ) -> models.User:
     return await verify_token(
         db=db,
-        token=jwt,
+        token=token,
         type=VerifyType.DEFAULT,
     )
 

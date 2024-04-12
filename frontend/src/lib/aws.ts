@@ -29,7 +29,7 @@ export function isPresignedExpired(url: string) {
     return expiryDate < new Date()
 }
 
-export async function refreshGETPresigned(key: string, IDs: number[]): Promise<Record<number, string>> {
+export async function refreshGETPresigned(key: string, IDs: number[], token: string): Promise<Record<number, string>> {
     let sendData: number[] | number = IDs;
 
     if (key === "convo_id") sendData = IDs[0];
@@ -38,9 +38,9 @@ export async function refreshGETPresigned(key: string, IDs: number[]): Promise<R
         `${clientSettings.apiBaseURL}/aws/s3/generate-presigned-get`,
         {
             method: 'POST',
-            credentials: 'include',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({ [key]: sendData })
         }

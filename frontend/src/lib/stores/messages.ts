@@ -20,14 +20,16 @@ function createMessageStore() {
 
     let loading = false;
     
-    async function fetchMsgs(convoID: number, offset: number, limit: number, loadedAll: boolean, msgContainer?: HTMLElement): Promise<void> {
+    async function fetchMsgs(convoID: number, offset: number, limit: number, loadedAll: boolean, token: string, msgContainer?: HTMLElement): Promise<void> {
         if (loading || loadedAll) return;
         loading = true;
 
         const response = await fetch(`${clientSettings.apiBaseURL}/messages/${convoID}?offset=${offset}&limit=${limit}`, {
             method: "GET",
-            credentials: "include",
-        })
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
 
         if (!response.ok) {
             loading = false;

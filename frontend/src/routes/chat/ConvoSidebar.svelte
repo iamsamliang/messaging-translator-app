@@ -24,9 +24,10 @@
 	import { getMsgPreviewTimeValue } from '$lib/utils';
 	import clientSettings from '$lib/config/config.client';
 	import { messageStore } from '$lib/stores/messages';
-	import { createEventDispatcher, tick } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 
 	export let currEmail: string;
+	export let token: string;
 
 	// type ConversationEntry = [number, Conversation];
 	// const convosArray = derived(conversations, ($conversations): ConversationEntry[] =>
@@ -88,7 +89,9 @@
 			`${clientSettings.apiBaseURL}/conversations?offset=${convosOffset}&limit=${LIMIT}`,
 			{
 				method: 'GET',
-				credentials: 'include'
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
 			}
 		);
 		if (!response.ok) {
@@ -145,7 +148,7 @@
 		if ($currUser.presigned_url) {
 			if (isPresignedExpired($currUser.presigned_url)) {
 				try {
-					const newURLs = await refreshGETPresigned('user_ids', [$currUser.id]);
+					const newURLs = await refreshGETPresigned('user_ids', [$currUser.id], token);
 					currUser.update((user) => {
 						user = { ...user, presigned_url: newURLs[user.id] };
 
@@ -184,7 +187,9 @@
 				`${clientSettings.apiBaseURL}/conversations/${convoID}/members`,
 				{
 					method: 'GET',
-					credentials: 'include'
+					headers: {
+						Authorization: `Bearer ${token}`
+					}
 				}
 			);
 			if (!response.ok) {
@@ -225,7 +230,9 @@
 		try {
 			// const response: Response = await fetch(`${clientSettings.apiBaseURL}/messages/${convoID}`, {
 			// 	method: 'GET',
-			// 	credentials: 'include'
+			// 	headers: {
+			//		Authorization: `Bearer ${token}`
+			//	}
 			// });
 			// if (!response.ok) {
 			// 	const errorResponse = await response.json();
@@ -241,7 +248,8 @@
 				convoID,
 				$messageStore.offset,
 				clientSettings.initialMessageLoadLimit,
-				$messageStore.loadedAll
+				$messageStore.loadedAll,
+				token
 			);
 			dispatch('initMsgFetch');
 
@@ -261,9 +269,9 @@
 						{
 							method: 'PATCH',
 							headers: {
-								'Content-Type': 'application/json'
+								'Content-Type': 'application/json',
+								Authorization: `Bearer ${token}`
 							},
-							credentials: 'include',
 							body: JSON.stringify(patchData)
 						}
 					);
@@ -335,9 +343,9 @@
 			const response: Response = await fetch(`${clientSettings.apiBaseURL}/conversations/create`, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`
 				},
-				credentials: 'include',
 				body: JSON.stringify(createdChat)
 			});
 

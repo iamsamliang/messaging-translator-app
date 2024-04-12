@@ -16,6 +16,8 @@
 	import LoadingIcon from '$lib/components/LoadingIcon.svelte';
 	import clientSettings from '$lib/config/config.client';
 
+	export let token: string;
+
 	let showMembers: boolean = false;
 
 	let showModal: boolean = false;
@@ -109,9 +111,9 @@
 							{
 								method: 'POST',
 								headers: {
-									'Content-Type': 'application/json'
+									'Content-Type': 'application/json',
+									Authorization: `Bearer ${token}`
 								},
-								credentials: 'include',
 								body: JSON.stringify(presignedData)
 							}
 						);
@@ -142,9 +144,9 @@
 							`${clientSettings.apiBaseURL}/conversations/${$selectedConvoID}/update`,
 							{
 								method: 'PATCH',
-								credentials: 'include',
 								headers: {
-									'Content-Type': 'application/json'
+									'Content-Type': 'application/json',
+									Authorization: `Bearer ${token}`
 								},
 								body: JSON.stringify({ conversation_photo: S3Data.fields.key })
 							}
@@ -274,7 +276,7 @@
 
 		if (expiredIDs.length !== 0) {
 			try {
-				const newURLs = await refreshGETPresigned('user_ids', expiredIDs);
+				const newURLs = await refreshGETPresigned('user_ids', expiredIDs, token);
 
 				convoMembers.update((currMembers) => {
 					const updatedMembers = { ...currMembers };
@@ -320,9 +322,9 @@
 				{
 					method: 'PATCH',
 					headers: {
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`
 					},
-					credentials: 'include',
 					body: JSON.stringify(data)
 				}
 			);
@@ -376,9 +378,9 @@
 				{
 					method: 'PATCH',
 					headers: {
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`
 					},
-					credentials: 'include',
 					body: JSON.stringify(data)
 				}
 			);

@@ -1,7 +1,7 @@
 from typing import Annotated
 from datetime import timedelta, datetime, UTC
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import crud, schemas
@@ -17,7 +17,6 @@ router = APIRouter()
 async def login_for_token(
     db: DatabaseDep,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    response: Response,
 ) -> dict[str, str]:
     login_user = await crud.user.get_by_email(db, form_data.username)
     if not login_user or not security.verify_password(
@@ -36,18 +35,9 @@ async def login_for_token(
         )
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token, expire_date = security.create_access_token(
+    access_token = security.create_access_token(
         data={"sub": f"userid:{login_user.id}", "iat": datetime.now(UTC)},
         expires_delta=access_token_expires,
     )
 
-    response.set_cookie(
-        key="jwt",
-        value=access_token,
-        path="/",
-        expires=expire_date,
-        httponly=True,
-        secure=True,
-        samesite="none",
-    )
     return {"access_token": access_token, "token_type": "bearer"}

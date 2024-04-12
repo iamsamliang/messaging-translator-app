@@ -10,6 +10,7 @@
 	import { isPresignedExpired, refreshGETPresigned } from '$lib/aws';
 	import clientSettings from '$lib/config/config.client';
 
+	export let token: string;
 	let newName: string = '';
 
 	async function checkChatUrl(): Promise<void> {
@@ -18,7 +19,7 @@
 
 			try {
 				// {"convo_id": "presigned_URL"}
-				const newGCUrl = await refreshGETPresigned('convo_id', [convoID]);
+				const newGCUrl = await refreshGETPresigned('convo_id', [convoID], token);
 
 				conversations.update((currConversations) => {
 					const prevVal = currConversations.get(convoID);
@@ -63,8 +64,8 @@
 					`${clientSettings.apiBaseURL}/conversations/${$selectedConvoID}/update`,
 					{
 						method: 'PATCH',
-						credentials: 'include',
 						headers: {
+							Authorization: `Bearer ${token}`,
 							'Content-Type': 'application/json'
 						},
 						body: JSON.stringify({ conversation_name: newName })

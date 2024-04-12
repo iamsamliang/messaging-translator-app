@@ -19,6 +19,7 @@ export async function load({ cookies }) {
     const user = await response.json();
 
     return {
-        user
+        user,
+        token
     };
 }

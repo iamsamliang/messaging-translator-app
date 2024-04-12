@@ -25,7 +25,7 @@ function unsubscribeAll(): void {
     selConvoUnsubscribe();
 }
 
-export function connectWebSocket(websocketAuthToken: string, currUserEmail: string) {
+export function connectWebSocket(websocketAuthToken: string, currUserEmail: string, token: string) {
     if (typeof window !== "undefined") { // Check if running in browser
         try {
             socket = new WebSocket(`${clientSettings.websocketBaseUrl}/ws/comms?token=${encodeURIComponent(websocketAuthToken)}&user_email=${encodeURIComponent(currUserEmail)}`);
@@ -75,7 +75,9 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                             `${clientSettings.apiBaseURL}/conversations/${updateData.convo_id}?get_latest_msg=true`,
                             {
                                 method: 'GET',
-                                credentials: 'include'
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
                             }
                         );
                         if (!response.ok) {
@@ -225,9 +227,9 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                             {
                                 method: 'PATCH',
                                 headers: {
-                                    'Content-Type': 'application/json'
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
                                 },
-                                credentials: 'include',
                                 body: JSON.stringify(patchData)
                             }
                         );
@@ -254,7 +256,9 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                                 `${clientSettings.apiBaseURL}/conversations/${receivedMessage.conversation_id}?get_latest_msg=false`,
                                 {
                                     method: 'GET',
-                                    credentials: 'include'
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
                                 }
                             );
                             if (!response.ok) {

@@ -186,9 +186,9 @@
 						{
 							method: 'POST',
 							headers: {
+								Authorization: `Bearer ${data.token}`,
 								'Content-Type': 'application/json'
 							},
-							credentials: 'include',
 							body: JSON.stringify(presignedData)
 						}
 					);
@@ -254,7 +254,9 @@
 
 			const response: Response = await fetch(`${clientSettings.apiBaseURL}/users/update`, {
 				method: 'PATCH',
-				credentials: 'include',
+				headers: {
+					Authorization: `Bearer ${data.token}`
+				},
 				body: formData
 			});
 
@@ -387,7 +389,7 @@
 
 	onMount(() => {
 		toast.remove();
-		connectWebSocket(data.user.websocket_token, data.user.email);
+		connectWebSocket(data.user.websocket_token, data.user.email, data.token);
 	});
 
 	onDestroy(() => {
@@ -405,6 +407,7 @@
 	<!-- Conversations List -->
 	<ConvoSidebar
 		currEmail={data.user.email}
+		token={data.token}
 		scrollSignal={convoSidebarScrollSignal}
 		on:initMsgFetch={signalMsgContainerScrollBottom}
 		on:scrolledTop={unsignalConvoSidebarScrollTop}
@@ -413,9 +416,10 @@
 	<!-- Actual Chat Area -->
 	{#if $selectedConvoID !== -10}
 		<section class="chat-area w-full max-w-full min-w-0">
-			<ChatHeader />
+			<ChatHeader token={data.token} />
 			<MessagesContainer
 				currUserID={data.user.id}
+				token={data.token}
 				scrollBottomSignal={msgContainerScrollSignal}
 				on:scrolledBottom={unsignalMsgContainerScrollBottom}
 			/>
@@ -707,7 +711,7 @@
 
 	<!-- Info Sidebar of a Specific Conversation -->
 	{#if $displayChatInfo}
-		<InfoSidebar />
+		<InfoSidebar token={data.token} />
 	{/if}
 </main>
 

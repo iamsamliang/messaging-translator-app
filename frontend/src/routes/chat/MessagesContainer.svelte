@@ -11,6 +11,7 @@
 	import { msgContainerScrollSignal } from '$lib/stores/msgContainerScrollSignal';
 
 	export let currUserID: number;
+	export let token: string;
 
 	// Process chat messages in messageStore to include date separators
 	$: processedMsgs = $messageStore.messages.reduce((acc: MessageCreate[], message, index) => {
@@ -89,6 +90,7 @@
 				$messageStore.offset,
 				clientSettings.fetchMsgBatchSize,
 				$messageStore.loadedAll,
+				token,
 				messagesContainer
 			)}
 	>
