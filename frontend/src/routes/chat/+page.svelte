@@ -560,7 +560,7 @@
 								viewBox="0 0 24 24"
 								stroke-width="1.1"
 								stroke="currentColor"
-								class="w-full object-cover opacity-50"
+								class="w-full object-cover opacity-20"
 							>
 								<path
 									stroke-linecap="round"
@@ -569,8 +569,8 @@
 								/>
 							</svg>
 							<span
-								class="absolute inset-0 flex justify-center items-center opacity-100 text-white text-center text-[0.8rem] bg-black bg-opacity-20"
-								>Upload Profile Picture (JPG only)</span
+								class="absolute inset-0 flex justify-center items-center text-white text-center text-[0.8rem]"
+								>Upload Profile Picture<br />(JPG only)</span
 							>
 						{/if}
 					</label>
