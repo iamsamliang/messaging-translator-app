@@ -22,70 +22,65 @@ function createMessageStore() {
     
     async function fetchMsgs(convoID: number, offset: number, limit: number, loadedAll: boolean, token: string, msgContainer?: HTMLElement): Promise<void> {
         if (loading || loadedAll) return;
+
         loading = true;
 
-        const response = await fetch(`${clientSettings.apiBaseURL}/messages/${convoID}?offset=${offset}&limit=${limit}`, {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            loading = false;
-            throw new Error(`Error fetching messages`);
-        }
-
-        const fetchedMsgs: MessageCreate[] = await response.json();
-
-        let scrollDifference;
-
-        if (msgContainer) {
-            // const scrollTop = msgContainer.scrollTop;
-            // const clientHeight = msgContainer.clientHeight;
-            // const scrollHeight = msgContainer.scrollHeight;
-            
-            // offsetFromBottom = scrollHeight - (scrollTop + clientHeight);
-            // console.log('Offset from bottom:', offsetFromBottom);
-
-            scrollDifference = msgContainer.scrollHeight - msgContainer.scrollTop;
-        }
-
-        update(state => {
-            return {
-                ...state,
-                messages: [...fetchedMsgs, ...state.messages],
-                loadedAll: fetchedMsgs.length < limit,
-                offset: state.offset + fetchedMsgs.length,
-            };
-        });
-
-        // requestAnimationFrame(() => {
-        //     if (msgContainer) {
-        //         msgContainer.scrollTop = msgContainer.scrollHeight - scrollDifference;
-
-        //         // const newScrollTop = msgContainer.scrollHeight - msgContainer.clientHeight - offsetFromBottom;
-        //         // msgContainer.scrollTop = newScrollTop;
-        //     }
-        // })
-
-        if (msgContainer) {
-            await tick();
-
-            // @ts-expect-error => scrollDifference will never be undefined if msgContainer isn't undefined
-            msgContainer.scrollTop = msgContainer.scrollHeight - scrollDifference;
-            
-            msgContainer.scrollBy({
-                top: -1,
-                left: 0,
-                behavior: "smooth",
+        try {
+            const response = await fetch(`${clientSettings.apiBaseURL}/messages/${convoID}?offset=${offset}&limit=${limit}`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
             });
 
-            // const newScrollTop = msgContainer.scrollHeight - msgContainer.clientHeight - offsetFromBottom;
-            // msgContainer.scrollTop = newScrollTop;
-        }
+            if (!response.ok) throw new Error();
 
-        loading = false;
+            const fetchedMsgs: MessageCreate[] = await response.json();
+
+            let scrollDifference;
+
+            if (msgContainer) {
+                scrollDifference = msgContainer.scrollHeight - msgContainer.scrollTop;
+            }
+
+            update(state => {
+                return {
+                    ...state,
+                    messages: [...fetchedMsgs, ...state.messages],
+                    loadedAll: fetchedMsgs.length < limit,
+                    offset: state.offset + fetchedMsgs.length,
+                };
+            });
+
+            // requestAnimationFrame(() => {
+            //     if (msgContainer) {
+            //         msgContainer.scrollTop = msgContainer.scrollHeight - scrollDifference;
+
+            //         // const newScrollTop = msgContainer.scrollHeight - msgContainer.clientHeight - offsetFromBottom;
+            //         // msgContainer.scrollTop = newScrollTop;
+            //     }
+            // })
+
+            if (msgContainer) {
+                await tick();
+
+                // @ts-expect-error => scrollDifference will never be undefined if msgContainer isn't undefined
+                msgContainer.scrollTop = msgContainer.scrollHeight - scrollDifference;
+                
+                msgContainer.scrollBy({
+                    top: -1,
+                    left: 0,
+                    behavior: "smooth",
+                });
+
+                // const newScrollTop = msgContainer.scrollHeight - msgContainer.clientHeight - offsetFromBottom;
+                // msgContainer.scrollTop = newScrollTop;
+            }
+        } catch (error) {
+            throw new Error(`Error fetching messages`);
+        } finally {
+            loading = false;
+        }
     }
 
     function sendNewMessage(formattedMsg: MessageCreate) {

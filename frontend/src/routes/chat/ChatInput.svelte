@@ -7,6 +7,7 @@
 	import type { Conversation } from '$lib/interfaces/ResponseModels.interface';
 	import { messageStore } from '$lib/stores/messages';
 	import { createEventDispatcher } from 'svelte';
+	import { websocketNotifStore } from '$lib/stores/websocketNotification';
 
 	let inputValue: string = '';
 	let textArea: HTMLTextAreaElement;
@@ -121,7 +122,7 @@
 			inputValue = '';
 			textArea.style.height = 'auto';
 		} else {
-			alert('Please enter a message!');
+			websocketNotifStore.sendNotification('Please enter a message!');
 		}
 	}
 </script>
@@ -130,7 +131,7 @@
 {#if $selectedConvoID !== -10}
 	<footer>
 		<form
-			class="flex px-[15px] pb-4 pt-[12px] bg-neutral-950"
+			class="flex px-[7px] pb-2 min-[360px]:px-[15px] min-[360px]:pb-4 pt-[12px] bg-neutral-950"
 			on:submit|preventDefault={sendMessage}
 		>
 			<!-- <input
@@ -144,16 +145,30 @@
 				bind:value={inputValue}
 				placeholder="Write a message..."
 				rows="1"
-				class="flex-grow resize-none rounded-2xl py-[6px] px-[10px] mr-[10px] focus:outline-none max-h-[calc(3em*5)] no-scrollbar text-white bg-neutral-950 border border-neutral-700"
+				class="flex-grow resize-none rounded-2xl py-[6px] px-[10px] mr-[5px] min-[360px]:mr-[10px] focus:outline-none max-h-[calc(3em*5)] no-scrollbar text-white bg-neutral-950 border border-neutral-700"
 				on:input={resizeTextArea}
 				on:keydown={handleKeyPress}
 			></textarea>
 			<button
 				bind:this={button}
 				type="submit"
-				class="bg-blue-600 text-white border-none py-1 px-5 rounded-full hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:opacity-30 h-fit mt-auto"
-				disabled={inputValue.trim().length === 0}>Send</button
-			>
+				class="text-white border-none hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:opacity-30 h-fit mt-auto mb-1 sm:ml-1"
+				disabled={inputValue.trim().length === 0}
+				><svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.5"
+					stroke="currentColor"
+					class="w-6 h-6"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+					/>
+				</svg>
+			</button>
 		</form>
 	</footer>
 {/if}

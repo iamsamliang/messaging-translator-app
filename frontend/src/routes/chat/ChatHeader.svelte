@@ -9,6 +9,7 @@
 	} from '$lib/stores/stores';
 	import { isPresignedExpired, refreshGETPresigned } from '$lib/aws';
 	import clientSettings from '$lib/config/config.client';
+	import { websocketNotifStore } from '$lib/stores/websocketNotification';
 
 	export let token: string;
 	let newName: string = '';
@@ -31,7 +32,7 @@
 					return currConversations;
 				});
 			} catch (error) {
-				console.error("Error refreshing members' GET presigned URLs:", error);
+				return;
 			}
 		}
 	}
@@ -72,11 +73,7 @@
 					}
 				);
 
-				if (!response.ok) {
-					const errorResponse = await response.json();
-					console.error('Error details:', errorResponse);
-					throw new Error(`Error code: ${response.status}`);
-				}
+				if (!response.ok) throw new Error();
 
 				// conversations.update((currConversations) => {
 				// 	if (currConversations.has($selectedConvoID)) {
@@ -100,8 +97,9 @@
 				changeChatName.set(false);
 			}
 		} catch (error) {
-			console.error('There was a problem with the fetch operation:', error);
-			// Optionally handle the error (e.g., show an error message to the user)
+			websocketNotifStore.sendNotification(
+				`Error updating group chat name. Please try again in a moment`
+			);
 		}
 	}
 </script>

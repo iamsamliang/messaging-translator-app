@@ -102,7 +102,7 @@ async def get_convos(
 async def get_members(
     db: DatabaseDep,
     conversation_id: int,
-    _unused_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
+    curr_user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
     request: Request,
 ) -> dict[str, dict[int, models.User] | list[int] | bool | str | None]:
     convo = await crud.conversation.get(db=db, id=conversation_id)
@@ -123,6 +123,7 @@ async def get_members(
     try:
         gc_url = None
 
+        # GC with Conversation Photo
         if convo.conversation_photo:
             _, gc_url = await get_cached_presigned_obj(
                 object_key=convo.conversation_photo,
@@ -137,6 +138,25 @@ async def get_members(
                     expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
                     redis_client=redis_client,
                 )
+        elif not convo.is_group_chat:  # Not a GC
+            for member in await convo.awaitable_attrs.members:
+                if member.id != curr_user.id:
+                    obj_key = member.profile_photo  # type: ignore
+                    if obj_key:  # Other user has a profile photo. Use it as GC photo
+                        _, gc_url = await get_cached_presigned_obj(
+                            object_key=obj_key,
+                            redis_client=redis_client,
+                            method=CacheMethod.GET,
+                        )
+
+                        if not gc_url:
+                            gc_url = await generate_presigned_get_url(
+                                bucket_name=settings.S3_BUCKET_NAME,
+                                object_key=obj_key,
+                                expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
+                                redis_client=redis_client,
+                            )
+                    break
 
         for member in sorted(
             members, key=lambda user: (user.first_name, user.last_name)

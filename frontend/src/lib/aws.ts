@@ -7,12 +7,7 @@ export async function uploadImageToS3(url: string, presignedForm: FormData) {
         body: presignedForm
     });
 
-    if (!response.ok) {
-        // S3 returns error codes in XML
-        const textResponse = await response.text();
-        console.error('Server responded with an error:', textResponse);
-        throw new Error(response.statusText);
-    }
+    if (!response.ok) throw new Error(`An error occured trying to upload your image. Please try again in a moment.`);
 }
 
 export function isPresignedExpired(url: string) {
@@ -46,11 +41,7 @@ export async function refreshGETPresigned(key: string, IDs: number[], token: str
         }
     );
 
-    if (!getURLResponse.ok) {
-        const errorResponse = await getURLResponse.json();
-        console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-        throw new Error(`Error code: ${getURLResponse.status}`);
-    }
+    if (!getURLResponse.ok) throw new Error(`An error occured trying to load chat photos. Please refresh your page in a moment.`);
 
     return (await getURLResponse.json());
 }

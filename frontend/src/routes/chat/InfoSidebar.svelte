@@ -15,6 +15,7 @@
 	import { isPresignedExpired, refreshGETPresigned, uploadImageToS3 } from '$lib/aws';
 	import LoadingIcon from '$lib/components/LoadingIcon.svelte';
 	import clientSettings from '$lib/config/config.client';
+	import { websocketNotifStore } from '$lib/stores/websocketNotification';
 
 	export let token: string;
 
@@ -63,7 +64,7 @@
 			const file = input.files[0];
 
 			if (file.type !== 'image/jpeg') {
-				alert('Only JPG files are allowed.');
+				websocketNotifStore.sendNotification('Only JPG files are allowed.');
 				input.value = '';
 				showCropModal = false;
 				return;
@@ -118,10 +119,7 @@
 							}
 						);
 
-						if (!getPresigned.ok) {
-							const errorResponse = await getPresigned.json();
-							throw new Error(errorResponse.detail);
-						}
+						if (!getPresigned.ok) throw new Error();
 
 						const S3Data = await getPresigned.json();
 
@@ -152,10 +150,7 @@
 							}
 						);
 
-						if (!response.ok) {
-							const errorResponse = await response.json();
-							throw new Error(errorResponse.detail);
-						}
+						if (!response.ok) throw new Error();
 
 						// 5. Update the conversation to store the new image as picture
 						// conversations.update((currConversations) => {
@@ -171,8 +166,9 @@
 						if (cropUrl) URL.revokeObjectURL(cropUrl);
 						croppedCanvas = null;
 					} catch (error) {
-						alert('Failed to change group chat photo. Please try again.');
-						console.error(error);
+						websocketNotifStore.sendNotification(
+							'Failed to change group chat photo. Please try again.'
+						);
 						return;
 					} finally {
 						isLoading = false;
@@ -298,7 +294,7 @@
 					});
 				}
 			} catch (error) {
-				console.error("Error refreshing members' GET presigned URLs:", error);
+				return;
 			}
 		}
 	}
@@ -336,37 +332,16 @@
 					input = '';
 					return;
 				} else {
-					console.error(
-						`Error ${response.status}: , ${JSON.stringify(errorResponse.detail, null, 2)}`
-					);
-					throw new Error(`Error code: ${response.status}`);
+					throw new Error();
 				}
 			}
-
-			// {
-			//    "members": members_dict,
-			//    "sorted_member_ids": sorted_curr_ids,
-			//    "self_url_expired": None,
-			// }
-			// const updateData = await response.json();
-			// sortedConvoMemberIDs.set(updateData.sorted_member_ids);
-
-			// convoMembers.update((currMembers) => {
-			// 	const newMembers = updateData.members;
-			// 	for (let id in newMembers) {
-			// 		const userID = Number(id);
-			// 		currMembers[userID] = newMembers[userID];
-			// 	}
-
-			// 	return currMembers;
-			// });
 
 			showModal = false;
 			emails = [];
 			input = '';
 			emailsErrorMsg = '';
 		} catch (error) {
-			console.error('Error adding members:', error);
+			emailsErrorMsg = 'Error adding members. Please try again in a moment.';
 		}
 	}
 
@@ -385,15 +360,11 @@
 				}
 			);
 
-			if (!response.ok) {
-				const errorResponse = await response.json();
-				console.error(
-					`Error ${response.status}: , ${JSON.stringify(errorResponse.detail, null, 2)}`
-				);
-				throw new Error(`Error code: ${response.status}`);
-			}
+			if (!response.ok) throw new Error();
 		} catch (error) {
-			console.error('Error deleting member:', error);
+			websocketNotifStore.sendNotification(
+				'There was an error removing the member. Please try again in a moment.'
+			);
 		}
 
 		showModal = false;

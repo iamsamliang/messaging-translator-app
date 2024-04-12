@@ -32,9 +32,7 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
 
             socket.onerror = (error) => {
                 websocketNotifStore.sendNotification("An error occured with your connection. Please refresh the page.")
-                console.error(`WebSocket error: ${error}`);
             }
-            socket.onopen = () => console.log("WebSocket is open now.");
             socket.onmessage = async (event) => {
                 // const receivedMessage: MessageReceive = JSON.parse(event.data);
 
@@ -80,11 +78,7 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                                 }
                             }
                         );
-                        if (!response.ok) {
-                            const errorResponse = await response.json();
-                            console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-                            throw new Error(`Error code: ${response.status}`);
-                        }
+                        if (!response.ok) throw new Error();
 
                         const convo = await response.json();
                         
@@ -108,7 +102,8 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                             return currConversations;
                         });
                     } catch (error) {
-                        console.error('Error fetching group chat you were added to:', error);
+                        websocketNotifStore.sendNotification("An error occured with a request. Please refresh the page.")
+                        return;
                     }
                 } else if (packet.type === "delete_self") {
                     // deleting oneself from group chat
@@ -222,21 +217,21 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
 
                         // notify server of this update
                         const patchData = { is_read: 1 };
-                        const patchResponse: Response = await fetch(
-                            `${clientSettings.apiBaseURL}/translations/${receivedMessage.translation_id}`,
-                            {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify(patchData)
-                            }
-                        );
-                        if (!patchResponse.ok) {
-                            const errorResponse = await patchResponse.json();
-                            console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-                            throw new Error(`Error code: ${patchResponse.status}`);
+                        try {
+                            const patchResponse: Response = await fetch(
+                                `${clientSettings.apiBaseURL}/translations/${receivedMessage.translation_id}`,
+                                {
+                                    method: 'PATCH',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify(patchData)
+                                }
+                            );
+                            if (!patchResponse.ok) throw new Error();
+                        } catch (error) {
+                            websocketNotifStore.sendNotification("An error occured with a request. Please refresh the page.");
                         }
                     } else {
                         newMessageInfo["isRead"] = 0;
@@ -261,11 +256,7 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                                     }
                                 }
                             );
-                            if (!response.ok) {
-                                const errorResponse = await response.json();
-                                console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-                                throw new Error(`Error code: ${response.status}`);
-                            }
+                            if (!response.ok) throw new Error();
 
                             const convo = await response.json();
 
@@ -275,7 +266,8 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                                 return currConversations;
                             });
                         } catch (error) {
-                            console.error('Error fetching conversation:', error);
+                            websocketNotifStore.sendNotification("An error occured with a Conversation request. Please refresh the page.")
+                            return;
                         }
                     } else {
                         conversations.update((currConversations) => {
@@ -292,7 +284,8 @@ export function connectWebSocket(websocketAuthToken: string, currUserEmail: stri
                         });
                     }
                 } else if (packet.type === "error") {
-                    alert(packet.data);
+                    websocketNotifStore.sendNotification(packet.data as string);
+                    // alert(packet.data);
                 }
             }
             socket.onclose = () => {

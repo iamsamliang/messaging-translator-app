@@ -25,6 +25,7 @@
 	import clientSettings from '$lib/config/config.client';
 	import { messageStore } from '$lib/stores/messages';
 	import { createEventDispatcher } from 'svelte';
+	import { websocketNotifStore } from '$lib/stores/websocketNotification';
 
 	export let currEmail: string;
 	export let token: string;
@@ -56,8 +57,6 @@
 
 	let isLoadingConvos = false;
 	let loadedAll = false;
-	// let virtualScrollList: VirtualScroll;
-	// let listContainer: HTMLDivElement;
 
 	// offset by however much we already loaded initially
 	let convosOffset = clientSettings.initialConversationLoadLimit;
@@ -70,76 +69,65 @@
 	let showModal: boolean = false;
 	let chatName: string = '';
 
-	// async function onScrollHandler(): Promise<void> {
-	// 	console.log(virtualScrollList.getOffset());
-
-	// 	if (listContainer.scrollHeight - virtualScrollList.getOffset() < 500) {
-	// 		console.log('loading more items');
-	// 	}
-	// }
-
 	async function fetchConversations(): Promise<void> {
 		if (isLoadingConvos || loadedAll) return;
 
 		isLoadingConvos = true;
 
-		// console.log($conversations);
-		console.log('fetching more convos');
-		const response: Response = await fetch(
-			`${clientSettings.apiBaseURL}/conversations?offset=${convosOffset}&limit=${LIMIT}`,
-			{
-				method: 'GET',
-				headers: {
-					Authorization: `Bearer ${token}`
-				}
-			}
-		);
-		if (!response.ok) {
-			const errorResponse = await response.json();
-			console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-			throw new Error(`Error code: ${response.status}`);
-		}
-
-		// should return an array of Convos
-		const newConversations: ConversationResponse[] = await response.json();
-
-		conversations.update((currConvos) => {
-			const newConvosMap: Map<number, Conversation> = new Map();
-
-			latestMessages.update((latestMsg) => {
-				for (let conversation of newConversations) {
-					newConvosMap.set(conversation.id, {
-						convoName: conversation.conversation_name,
-						isGroupChat: conversation.is_group_chat,
-						presignedUrl: conversation.presigned_url
-					});
-
-					if (conversation.latest_message && conversation.latest_message.relevant_translation) {
-						latestMsg[conversation.id] = {
-							text: conversation.latest_message.relevant_translation,
-							time: getMsgPreviewTimeValue(conversation.latest_message.sent_at),
-							isRead: conversation.latest_message.is_read as number,
-							translationID: conversation.latest_message.translation_id as number
-						};
+		try {
+			const response: Response = await fetch(
+				`${clientSettings.apiBaseURL}/conversations?offset=${convosOffset}&limit=${LIMIT}`,
+				{
+					method: 'GET',
+					headers: {
+						Authorization: `Bearer ${token}`
 					}
 				}
+			);
+			if (!response.ok) throw new Error();
 
-				return latestMsg;
+			// should return an array of Convos
+			const newConversations: ConversationResponse[] = await response.json();
+
+			conversations.update((currConvos) => {
+				const newConvosMap: Map<number, Conversation> = new Map();
+
+				latestMessages.update((latestMsg) => {
+					for (let conversation of newConversations) {
+						newConvosMap.set(conversation.id, {
+							convoName: conversation.conversation_name,
+							isGroupChat: conversation.is_group_chat,
+							presignedUrl: conversation.presigned_url
+						});
+
+						if (conversation.latest_message && conversation.latest_message.relevant_translation) {
+							latestMsg[conversation.id] = {
+								text: conversation.latest_message.relevant_translation,
+								time: getMsgPreviewTimeValue(conversation.latest_message.sent_at),
+								isRead: conversation.latest_message.is_read as number,
+								translationID: conversation.latest_message.translation_id as number
+							};
+						}
+					}
+
+					return latestMsg;
+				});
+
+				currConvos.forEach((convo, convo_id) => {
+					newConvosMap.set(convo_id, convo);
+				});
+
+				return newConvosMap;
 			});
 
-			currConvos.forEach((convo, convo_id) => {
-				newConvosMap.set(convo_id, convo);
-			});
+			if (newConversations.length < LIMIT) loadedAll = true;
+			convosOffset += newConversations.length;
+		} catch (error) {
+			websocketNotifStore.sendNotification(
+				`Error loading more conversations. Please try again in a moment.`
+			);
+		}
 
-			return newConvosMap;
-		});
-
-		// console.log($conversations);
-		// console.log('\n');
-
-		if (newConversations.length < LIMIT) loadedAll = true;
-
-		convosOffset += newConversations.length;
 		isLoadingConvos = false;
 	}
 
@@ -155,7 +143,7 @@
 						return user;
 					});
 				} catch (error) {
-					console.error('Error refreshing current user GET presigned URL:', error);
+					return;
 				}
 			}
 		}
@@ -169,7 +157,6 @@
 		await getMembers(convoID);
 
 		if (convoID !== $selectedConvoID) {
-			// messages.set([]);
 			messageStore.reset();
 			selectedConvoID.set(convoID);
 
@@ -192,11 +179,7 @@
 					}
 				}
 			);
-			if (!response.ok) {
-				const errorResponse = await response.json();
-				console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-				throw new Error(`Error code: ${response.status}`);
-			}
+			if (!response.ok) throw new Error();
 
 			// { "members": members_dict, "sorted_member_ids": sorted_member_ids, "gc_url": gc_url }
 			const membersData: GetMembersResponse = await response.json();
@@ -222,28 +205,12 @@
 
 			sortedConvoMemberIDs.set(membersData.sorted_member_ids);
 		} catch (error) {
-			console.error('Error fetching chat members:', error);
+			return;
 		}
 	}
 
 	async function populateMessages(convoID: number): Promise<void> {
 		try {
-			// const response: Response = await fetch(`${clientSettings.apiBaseURL}/messages/${convoID}`, {
-			// 	method: 'GET',
-			// 	headers: {
-			//		Authorization: `Bearer ${token}`
-			//	}
-			// });
-			// if (!response.ok) {
-			// 	const errorResponse = await response.json();
-			// 	console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-			// 	throw new Error(`Error code: ${response.status}`);
-			// }
-
-			// const data: MessageCreate[] = await response.json();
-
-			// messages.set(data);
-
 			await messageStore.fetchMsgs(
 				convoID,
 				$messageStore.offset,
@@ -264,28 +231,27 @@
 					// notify server of this update
 					const translation_id = $latestMessages[convoID].translationID;
 					const patchData = { is_read: 1 };
-					const patchResponse: Response = await fetch(
-						`${clientSettings.apiBaseURL}/translations/${translation_id}`,
-						{
-							method: 'PATCH',
-							headers: {
-								'Content-Type': 'application/json',
-								Authorization: `Bearer ${token}`
-							},
-							body: JSON.stringify(patchData)
-						}
-					);
-					if (!patchResponse.ok) {
-						const errorResponse = await patchResponse.json();
-						console.error('Error details:', JSON.stringify(errorResponse.detail, null, 2));
-						throw new Error(`Error code: ${patchResponse.status}`);
+					try {
+						const patchResponse: Response = await fetch(
+							`${clientSettings.apiBaseURL}/translations/${translation_id}`,
+							{
+								method: 'PATCH',
+								headers: {
+									'Content-Type': 'application/json',
+									Authorization: `Bearer ${token}`
+								},
+								body: JSON.stringify(patchData)
+							}
+						);
+						if (!patchResponse.ok) throw new Error();
+					} catch (error) {
+						throw new Error('An error occured with a request. Please refresh the page.');
 					}
 				}
 			}
 		} catch (error) {
-			console.error('Error fetching messages:', error);
+			if (error instanceof Error) websocketNotifStore.sendNotification(`${error.message}`);
 			messageStore.reset();
-			// messages.set([]);
 		}
 	}
 
@@ -357,8 +323,7 @@
 					input = '';
 					return;
 				} else {
-					console.error('Error details:', errorResponse);
-					throw new Error(`Error code: ${response.status}`);
+					throw new Error();
 				}
 			}
 
@@ -395,8 +360,10 @@
 			chatName = '';
 			emailsErrorMsg = '';
 		} catch (error) {
-			console.error('Error creating chat:', error);
-			// Optionally handle the error (e.g., show an error message to the user)
+			emailsErrorMsg = 'Error adding members. Please try again in a moment.';
+			// websocketNotifStore.sendNotification(
+			// 	`Error creating the new chat. Please try again in a moment.`
+			// );
 		}
 	}
 

@@ -89,7 +89,7 @@
 			const file = input.files[0];
 
 			if (file.type !== 'image/jpeg') {
-				alert('Only JPG files are allowed.');
+				websocketNotifStore.sendNotification('Only JPG files are allowed.');
 				input.value = '';
 				showCropModal = false;
 				return;
@@ -171,7 +171,7 @@
 		isLoading = true;
 
 		try {
-			// 1. If user changed profile, upload to S3 and save the key to access from bucket
+			// 1. If user uploaded new profile picture, upload to S3 and save the key to access from bucket
 			if (croppedCanvas) {
 				try {
 					// 1. Get presigned URL for POST to S3
@@ -212,9 +212,6 @@
 					const blob = await canvasToBlobPromise(croppedCanvas, 'image/jpeg');
 					presignedForm.append('file', blob);
 
-					// const obj = Object.fromEntries(presignedForm);
-					// console.log(obj);
-
 					// 3. Upload image to S3 using the presigned URL and created form
 					await uploadImageToS3(S3Data.url, presignedForm);
 
@@ -230,8 +227,7 @@
 
 					croppedCanvas = null;
 				} catch (error) {
-					formErrorMsg = 'Failed to upload new profile photo. Please try again.';
-					console.error(error);
+					formErrorMsg = 'Failed to upload your new profile photo. Please try again in a moment.';
 					return;
 				}
 			}
@@ -289,7 +285,6 @@
 			formErrorMsg = '';
 		} catch (error) {
 			formErrorMsg = 'Failed to update profile. Try again.';
-			console.error('Error updating profile:', error);
 		} finally {
 			isLoading = false;
 		}
@@ -526,19 +521,19 @@
 
 		<!-- User Profile Update Form UI -->
 		<section
-			class="space-y-6 px-4 pt-4 min-[400px]:px-10 min-[400px]:pt-8 w-full overflow-scroll pb-4 min-[450px]:pb-0 bg-neutral-950 text-white"
+			class="px-4 pt-4 min-[400px]:px-10 min-[400px]:pt-8 w-full overflow-scroll pb-4 min-[450px]:pb-0 bg-neutral-950 text-white"
 		>
-			<div class="space-y-1">
+			<div class="space-y-1 mb-3">
 				<h2 class="text-2xl font-bold tracking-tight">Settings</h2>
 				<p class="text-neutral-300">Manage your account settings.</p>
 			</div>
-			<hr class="border-t border-neutral-500" />
+			<hr class="border-t border-neutral-500 mb-6" />
 			<form
-				class="rounded-xl min-[450px]:px-8 min-[450px]:pb-5 space-y-4"
+				class="rounded-xl min-[450px]:px-8 min-[450px]:pb-4 space-y-3"
 				on:submit|preventDefault={handleProfileUpdate}
 				on:input={clearFormMessages}
 			>
-				<div class="flex flex-col justify-center items-center">
+				<div class="flex flex-col justify-center items-center mb-5">
 					<label
 						for="profilePhoto"
 						class="relative overflow-hidden rounded-full w-11/12 min-[450px]:w-52 group cursor-pointer"
@@ -551,7 +546,7 @@
 							/>
 							<span
 								class="absolute inset-0 flex justify-center items-center opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100 text-white text-center text-[0.8rem] bg-black bg-opacity-20"
-								>Upload Profile Picture (JPG only)</span
+								>Upload Profile Picture<br />(JPG only)</span
 							>
 						{:else}
 							<svg

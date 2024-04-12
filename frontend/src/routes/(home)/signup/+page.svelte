@@ -20,8 +20,8 @@
 	});
 </script>
 
-<div class="bg-black text-white flex flex-col justify-center items-center">
-	<h1 class="text-3xl font-bold mb-3">Register</h1>
+<div class="bg-black text-white flex flex-col justify-center items-center -mt-[1.93rem]">
+	<h1 class="text-3xl font-bold mb-2">Register</h1>
 	{#if form?.message}
 		<div class="border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
 			<strong class="font-bold">Error:</strong>
@@ -29,12 +29,12 @@
 		</div>
 	{/if}
 	<form
-		class="bg-gray-900 shadow-md rounded-xl px-8 pt-5 pb-4 mb-4 w-[85%] min-[450px]:w-[25rem] md:w-[30rem] lg:w-[35rem]"
+		class="bg-gray-900 shadow-md rounded-xl px-8 pt-5 pb-3 mb-4 w-[85%] min-[450px]:w-[25rem] md:w-[30rem] lg:w-[38rem]"
 		method="POST"
 		action="?/create"
 		use:enhance
 	>
-		<div class="mb-3">
+		<div class="mb-2">
 			<label for="firstname" class="block text-sm font-bold mb-2"> First Name </label>
 			<input
 				type="text"
@@ -51,7 +51,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-3">
+		<div class="mb-2">
 			<label for="lastname" class="block text-sm font-bold mb-2"> Last Name </label>
 			<input
 				type="text"
@@ -68,7 +68,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-3">
+		<div class="mb-2">
 			<label for="email" class="block text-sm font-bold mb-2"> Email </label>
 			<input
 				type="email"
@@ -84,7 +84,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-3">
+		<div class="mb-2">
 			<label for="password" class="block text-sm font-bold mb-2"> Password </label>
 			<input
 				type="password"
@@ -99,7 +99,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-3">
+		<div class="mb-2">
 			<label for="confPassword" class="block text-sm font-bold mb-2"> Confirm Password </label>
 			<input
 				type="password"
@@ -114,7 +114,7 @@
 			{/if}
 		</div>
 
-		<div class="mb-3 space-y-2">
+		<div class="mb-2 space-y-2">
 			<label for="language" class="block text-sm font-bold"> Language </label>
 			<select
 				id="language"
@@ -136,7 +136,7 @@
 			{/if}
 		</div>
 
-		<!-- <div class="mb-3">
+		<!-- <div class="mb-2">
 				<label for="language" class="block text-sm font-bold mb-2"> Default Language </label>
 				<input
 					type="string"
@@ -165,7 +165,7 @@
 			{/if}
 		</div>
 
-		<div class="flex flex-col justify-center items-center mb-4">
+		<div class="flex flex-col justify-center items-center mb-3">
 			<div id="recaptcha-div" class="scale-75 min-[500px]:scale-100"></div>
 			{#if form?.fieldErrors?.['g-recaptcha-response']}
 				<label for="g-recaptcha-response" class="flex text-sm text-red-500 mt-2">

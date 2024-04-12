@@ -10,9 +10,9 @@ const redis = new Redis({
 // Create ratelimiters
 // Duration -> "ms" | "s" | "m" | "h" | "d"
 export const rateLimiter = {
-    loginEmail: new Ratelimit({
+    loginEmailIP: new Ratelimit({
         redis,
-        limiter: Ratelimit.fixedWindow(10, "2h"), // 10 attempts per 2 hours
+        limiter: Ratelimit.fixedWindow(20, "2h"), // 20 attempts per 2 hours
         analytics: true,
         prefix: "ratelimit:loginEmail",
     }),
