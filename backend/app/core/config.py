@@ -30,9 +30,9 @@ class Settings(BaseSettings):
     WEBSOCKET_ACCESS_TOKEN_EXPIRE_SECS: int
 
     # AWS S3
-    S3_PRESIGNED_URL_GET_EXPIRE_SECS: int = 43200  # seconds = 12 hrs
-    S3_PRESIGNED_URL_POST_EXPIRE_SECS: int = 1800  # seconds = 30 minutes
     S3_BUCKET_NAME: str
+    S3_PRESIGNED_URL_GET_EXPIRE_SECS: int = 18000  # seconds = 5 hrs
+    S3_PRESIGNED_URL_POST_EXPIRE_SECS: int = 1800  # seconds = 30 minutes
 
     # DB Items Fetching Limits
     INITIAL_CONVERSATION_LOAD_LIMIT: int

@@ -1,7 +1,7 @@
 from typing import Annotated, AsyncGenerator, Callable
 import logging
 
-from fastapi import Cookie, Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
