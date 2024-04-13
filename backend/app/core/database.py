@@ -5,11 +5,11 @@ from app.core.config import settings
 engine = create_async_engine(
     url=str(settings.SQLALCHEMY_DATABASE_URI),
     echo=False,
-    # pool_size=10, # optimization params
-    # max_overflow=20,
-    # pool_timeout=30,
-    # pool_recycle=1800,  # e.g., 30 minutes
-    pool_pre_ping=True,
+    pool_size=10,  # higher size for higher concurrency requirements in app
+    max_overflow=20,  # pool can open up to N additional connections beyond the pool_size if required during peak loads
+    pool_timeout=30,  # number of seconds to wait before giving up on returning a connection from the pool. If all connections are in use, and no connection becomes available within the pool_timeout period, an exception is raised
+    pool_recycle=1800,  # sets the maximum age (in seconds) of connections in the pool. After this time, a connection will be replaced with a new one. Helps avoid DB timeouts or issues with stale connections
+    pool_pre_ping=True,  # before each DB operation, ping the database w/ a connection from the connection pool. If the ping fails, the connection is discarded and replaced with a new one. This helps avoid errors due to stale or broken connections.
 )
 
 
