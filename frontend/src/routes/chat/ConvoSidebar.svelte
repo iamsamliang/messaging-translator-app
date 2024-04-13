@@ -497,7 +497,9 @@
 					</svg>
 				{/if}
 			</div>
-			<h1 class="text-lg hidden min-[1047px]:flex text-neutral-100">
+			<h1
+				class="text-lg hidden min-[1047px]:flex text-neutral-100 overflow-hidden text-ellipsis whitespace-nowrap"
+			>
 				{$currUser.first_name}
 				{$currUser.last_name}
 			</h1>
