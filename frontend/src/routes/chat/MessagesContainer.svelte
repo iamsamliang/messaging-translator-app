@@ -55,10 +55,7 @@
 	}
 </script>
 
-<div
-	class="message-container no-scrollbar overscroll-contain gap-1 bg-neutral-950"
-	bind:this={messagesContainer}
->
+<div class="message-container no-scrollbar gap-1 bg-neutral-950" bind:this={messagesContainer}>
 	<!-- Repeat this 'message' div for each message in the chat -->
 	<!-- {#each processedMsgs as message}
 		{#if message.separator}

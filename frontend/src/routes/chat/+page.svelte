@@ -521,7 +521,7 @@
 
 		<!-- User Profile Update Form UI -->
 		<section
-			class="px-4 pt-4 min-[400px]:px-10 min-[400px]:pt-8 w-full overscroll-contain overflow-scroll pb-4 min-[450px]:pb-0 bg-neutral-950 text-white"
+			class="px-4 pt-4 min-[400px]:px-10 min-[400px]:pt-8 w-full overflow-scroll pb-4 min-[450px]:pb-0 bg-neutral-950 text-white"
 		>
 			<div class="space-y-1 mb-3">
 				<h2 class="text-2xl font-bold tracking-tight">Settings</h2>
@@ -721,7 +721,8 @@
 <style>
 	.messaging-app {
 		display: flex;
-		height: 100vh;
+		/* height: 100vh; */
+		height: 100dvh;
 		/* Full height of the viewport */
 	}
 
