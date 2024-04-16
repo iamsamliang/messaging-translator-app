@@ -71,7 +71,7 @@
 	class="min-h-screen bg-black flex flex-col bg-gradient-to-b from-neutral-950 via-black via-80% to-gray-950"
 >
 	<!-- Header -->
-	<header class="text-white sticky top-0 z-50">
+	<header class="text-white top-0 z-50">
 		<div class="px-4 md:px-8 lg:px-20 py-5">
 			<nav class="px-6 py-4 flex items-center justify-between">
 				<!-- Logo -->

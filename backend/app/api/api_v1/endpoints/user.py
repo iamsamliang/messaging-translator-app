@@ -3,6 +3,7 @@ from datetime import datetime
 import secrets
 
 from app.schemas.email_type import CustomEmailStr
+from app.utils.aws import generate_presigned_get_url
 from redis.asyncio import Redis
 from fastapi import (
     APIRouter,
@@ -166,6 +167,7 @@ async def reset_password(
 @router.patch("/update")
 async def update_user(
     db: DatabaseDep,
+    request: Request,
     user: Annotated[models.User, Depends(verify_current_user_w_cookie)],
     firstname: Annotated[str | None, Form(max_length=100)] = None,
     lastname: Annotated[str | None, Form(max_length=100)] = None,
@@ -203,6 +205,16 @@ async def update_user(
         await crud.user.update(db=db, db_obj=user, obj_in=user_update)
 
         await db.commit()
+
+        # generate new presigned GET and replace it in cache. Necessary so frontend
+        # fetches the new photo instead of using cached one
+        if user.profile_photo:
+            _ = await generate_presigned_get_url(
+                bucket_name=settings.S3_BUCKET_NAME,
+                object_key=user.profile_photo,
+                expire_in_secs=settings.S3_PRESIGNED_URL_GET_EXPIRE_SECS,
+                redis_client=request.app.state.redis_client,
+            )
 
         return form_data
     except IntegrityError as e:

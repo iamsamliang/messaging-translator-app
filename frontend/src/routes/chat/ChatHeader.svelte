@@ -108,7 +108,7 @@
 {#if $selectedConvoID !== -10}
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<header
-		class="flex items-center justify-between py-[15px] px-[10px] gap-4 min-[555px]:px-[20px] bg-neutral-950 text-white border-b-[0.5px] border-neutral-500"
+		class="flex items-center justify-between py-[15px] px-[10px] gap-4 min-[555px]:px-[20px] bg-neutral-950 text-white border-b-[0.5px] border-neutral-500 sticky"
 	>
 		<div class="flex items-center min-w-0 w-full gap-2">
 			<div class="chat-photo">

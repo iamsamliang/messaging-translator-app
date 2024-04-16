@@ -58,7 +58,6 @@ export const actions = {
                 httpOnly: true,
                 sameSite: 'strict',
             });
-
         } catch (error) {
             if (error instanceof Error) {
                 return fail(401, {

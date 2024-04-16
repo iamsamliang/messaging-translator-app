@@ -129,7 +129,7 @@
 
 <!-- Individual Chat Footer for Sending Message -->
 {#if $selectedConvoID !== -10}
-	<footer>
+	<footer class="sticky">
 		<form
 			class="flex px-[7px] pb-2 min-[360px]:px-[15px] min-[360px]:pb-4 pt-[12px] bg-neutral-950"
 			on:submit|preventDefault={sendMessage}

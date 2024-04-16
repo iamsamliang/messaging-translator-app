@@ -465,7 +465,7 @@
 	<!-- Sidebar Header -->
 	<!-- min-[1047px]:border-b-[1px] min-[1047px]:border-b-cyan-300 -->
 	<header
-		class="flex flex-col min-[1047px]:flex-row items-center pt-1 min-[1047px]:pt-3 min-[1047px]:pb-1 gap-2 bg-neutral-900 text-white"
+		class="flex flex-col min-[1047px]:flex-row items-center pt-1 min-[1047px]:pt-3 min-[1047px]:pb-1 gap-2 bg-neutral-900 text-white sticky"
 	>
 		<!-- <div class="pl-4 w-[80%] h-[36px] hidden min-[1047px]:flex">
 			<input

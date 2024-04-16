@@ -89,15 +89,18 @@
 		</div>
 	</div>
 	<div
-		class="flex-grow-0 flex-shrink-0 basis-auto flex-col gap-[0.8rem] items-end h-full hidden min-[1047px]:flex"
+		class="flex-grow-0 flex-shrink-0 basis-auto flex-col gap-[0.8rem] items-end h-full min-[1047px]:flex"
 	>
-		<div class="text-neutral-500 text-[0.9rem]" class:is-selected-color={isSelected}>
+		<div
+			class="text-neutral-500 text-[0.9rem] hidden min-[1047px]:flex"
+			class:is-selected-color={isSelected}
+		>
 			{#if $latestMessages[convoID]}
 				{$latestMessages[convoID].time}
 			{/if}
 		</div>
 		<div
-			class="bg-[#007bff] text-white rounded-full flex items-center justify-center w-[0.6rem] h-[0.6rem]"
+			class="bg-[#007bff] text-white rounded-full flex items-center justify-center w-[0.4rem] h-[0.4rem] min-[1047px]:w-[0.5rem] min-[1047px]:h-[0.5rem]"
 			class:hidden={$latestMessages[convoID] ? $latestMessages[convoID].isRead : true}
 		></div>
 	</div>
