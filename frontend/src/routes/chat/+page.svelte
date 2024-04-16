@@ -721,17 +721,14 @@
 <style>
 	.messaging-app {
 		display: flex;
-		/* height: 100vh; */
 		height: 100dvh;
-		/* Full height of the viewport */
+		/* Dynamic full height of the viewport to work on both browsers and PC */
 	}
 
 	/* ------------------- Chat area styles -------------------*/
 	.chat-area {
 		display: flex;
 		flex-direction: column;
-		/* Set a fixed width for the chat area or adjust as needed */
-		height: 100vh;
-		/* Border to separate from the rest of the interface */
+		height: 100dvh;
 	}
 </style>

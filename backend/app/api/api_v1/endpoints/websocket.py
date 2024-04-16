@@ -227,6 +227,9 @@ async def websocket_endpoint(
 
         if not redis_ws_token or redis_ws_token != token:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            logging.error(
+                "Error in authenticating websocket connection or Redis Error",
+            )
             return
 
         # after used to authenticate user in websocket endpoint, delete it from redis cache
