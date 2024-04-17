@@ -1,6 +1,6 @@
-# SpeakeAIsy
+#### Join the Speakeasy @ https://speakeaisy.vercel.app
 
-Deployed at https://speakeaisy.vercel.app
+# SpeakeAIsy
 
 A messaging app that translates any messages sent to you to your set language, allowing for communication between anyone by breaking the language barrier.
 
@@ -31,7 +31,7 @@ The backend is built with FastAPI. It consists of API endpoints and a WebSocket 
 
 PostgreSQL is used. Asynchronous SQLAlchemy is used to operate on the database to support concurrency. SSL connection is used for secure database communication. Alembic is used for database migrations to ensure database repeatability and consistency across platforms.
 
-# Infra
+# Deployment Infrastructure
 
 - Backend deployed on AWS EC2 with an NGINX reverse proxy and TLS Certificate for HTTPS
 - Systemd service for continuous deployment
